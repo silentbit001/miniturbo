@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cassandra-admin
+  labels:
+    app: cassandra-admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cassandra-admin
+  template:
+    metadata:
+      labels:
+        app: cassandra-admin
+    spec:
+      containers:
+      - name: cassandra-admin
+        image: delermando/docker-cassandra-web:v0.4.0
+        ports:
+        - containerPort: 3000
+        env:
+        - name: CASSANDRA_HOST_IP 
+          value: ${CASSANDRA_SERVICE_HOST}
+        - name: CASSANDRA_PORT 
+          value: 9042
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: cassandra-admin
+spec:
+  type: NodePort
+  selector:
+    app: cassandra-admin
+  ports:
+  - protocol: TCP
+    port: 3000
+    targetPort: 3000

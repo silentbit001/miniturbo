@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consul
+  labels:
+    app: consul
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consul
+  template:
+    metadata:
+      labels:
+        app: consul
+    spec:
+      containers:
+      - name: consul
+        image: consul
+        ports:
+        - containerPort: 8500
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: consul
+spec:
+  type: NodePort
+  selector:
+    app: consul
+  ports:
+  - protocol: TCP
+    port: 8500
+    targetPort: 8500
