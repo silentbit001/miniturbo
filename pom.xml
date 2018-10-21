@@ -4,7 +4,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>silentbit001</groupId>
+	<groupId>sb001</groupId>
 	<artifactId>miniturbo</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 
@@ -21,7 +21,7 @@
 		<junit-platform-surefire-provider.version>1.2.0</junit-platform-surefire-provider.version>
 		<junit-platform-launcher.version>1.2.0</junit-platform-launcher.version>
 
-		<main.verticle>io.vertx.pb.MainVerticle</main.verticle>
+		<main.verticle>sb001.miniturbo.vertex.MiniTurboVerticle</main.verticle>
 	</properties>
 
 	<dependencyManagement>

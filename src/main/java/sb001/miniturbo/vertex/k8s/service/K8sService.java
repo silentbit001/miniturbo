@@ -1,4 +1,4 @@
-package silentbit.miniturbo.vertex.k8s.service;
+package sb001.miniturbo.vertex.k8s.service;
 
 import java.util.Arrays;
 

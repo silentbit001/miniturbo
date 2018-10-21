@@ -1,4 +1,4 @@
-package silentbit.miniturbo.vertex.k8s;
+package sb001.miniturbo.vertex.k8s;
 
 import java.util.Objects;
 
@@ -10,7 +10,7 @@ import io.vertx.rx.java.RxHelper;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import lombok.extern.slf4j.Slf4j;
-import silentbit.miniturbo.vertex.k8s.service.K8sService;
+import sb001.miniturbo.vertex.k8s.service.K8sService;
 
 @Slf4j
 public class TurboK8sProxyVerticle extends AbstractVerticle {

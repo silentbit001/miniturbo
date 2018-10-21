@@ -1,4 +1,4 @@
-package silentbit.miniturbo.vertex.resource;
+package sb001.miniturbo.vertex.resource;
 
 import java.util.List;
 import java.util.regex.Matcher;
@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TurboResourceVerticle extends AbstractVerticle {
 
-    private static final int SERVER_PORT = 8081;
+    public static final int SERVER_PORT = 8081;
     private Pattern deploymentPattern = Pattern.compile("(?<=/deployments/)(.*)(?=.yaml)");
 
     @Override

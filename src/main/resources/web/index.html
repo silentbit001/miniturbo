@@ -8,8 +8,14 @@
 	  <meta name="description" content="Miniturbe - speed up your development env with minikube">
 	  <meta name="author" content="sb001">
 	
+	  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	  <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
 	  <link rel="stylesheet" href="css/styles.css?v=1.0">
+	  
 	  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+	  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
+	  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	  <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
 	
 	</head>
 	
@@ -17,10 +23,15 @@
 	  
 	  <div id="page">
 	  
-	  	<div id="app">{{ message }}</div>
+	  	<div id="resource-list">
+	  		<mt-resources 
+	  			v-for="item in resources"
+	  			v-bind:resource="item" />
+	  	</div>
 	  
 	  </div>
 	  
+	  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 	  <script src="js/miniturbo.js"></script>
 	  
 	</body>

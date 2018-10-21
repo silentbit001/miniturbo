@@ -1,13 +1,13 @@
-package silentbit.miniturbo.vertex;
+package sb001.miniturbo.vertex;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Launcher;
-import silentbit.miniturbo.vertex.api.TurboApiVerticle;
-import silentbit.miniturbo.vertex.k8s.TurboK8sProxyVerticle;
-import silentbit.miniturbo.vertex.resource.TurboResourceVerticle;
-import silentbit.miniturbo.vertex.web.TurboWebVerticle;
+import sb001.miniturbo.vertex.api.TurboApiVerticle;
+import sb001.miniturbo.vertex.k8s.TurboK8sProxyVerticle;
+import sb001.miniturbo.vertex.resource.TurboResourceVerticle;
+import sb001.miniturbo.vertex.web.TurboWebVerticle;
 
 public class MiniTurboVerticle extends AbstractVerticle {
 
