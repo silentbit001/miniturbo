@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import sb001.miniturbo.vertex.k8s.service.K8sService;
 
 @Slf4j
-public class TurboK8sProxyVerticle extends AbstractVerticle {
+public class TurboK8sEventBusVerticle extends AbstractVerticle {
 
     private K8sService k8sService;
 
@@ -39,6 +39,19 @@ public class TurboK8sProxyVerticle extends AbstractVerticle {
         });
 
         vertx.eventBus().consumer("stop_resource", handler -> {
+
+            String id = String.valueOf(handler.body());
+
+            ObservableFuture<Record> resourceServiceObsv = RxHelper.observableFuture();
+            resourceServiceObsv.filter(Objects::nonNull)
+                    .map(record -> (HttpClient) discovery.getReference(record).getAs(HttpClient.class))
+                    .subscribe(httpClient -> unDeploy(httpClient, id));
+
+            discovery.getRecord(r -> r.getName().equals("miniturbo-resource"), resourceServiceObsv.toHandler());
+
+        });
+
+        vertx.eventBus().consumer("status_resource", handler -> {
 
             String id = String.valueOf(handler.body());
 

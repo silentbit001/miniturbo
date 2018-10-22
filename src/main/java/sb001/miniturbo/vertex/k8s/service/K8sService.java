@@ -1,6 +1,8 @@
 package sb001.miniturbo.vertex.k8s.service;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -43,6 +45,11 @@ public class K8sService {
         this.coreV1Api = new CoreV1Api();
         this.appsV1Api = new AppsV1Api();
         this.namespace = namespace;
+    }
+
+    public List<Object> parseDocuments(final String yaml) {
+        return Arrays.asList(yaml.split("---")).stream().map(this::parseDocumentToK8sModel)
+                .collect(Collectors.toList());
     }
 
     public void deployYamlDocuments(final String yaml) {

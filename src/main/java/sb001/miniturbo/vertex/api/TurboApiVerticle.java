@@ -30,6 +30,7 @@ public class TurboApiVerticle extends AbstractVerticle {
         router.get("/resource").handler(this::findAllResources);
         router.post("/resource/:id/start").handler(this::startResource);
         router.post("/resource/:id/stop").handler(this::stopResource);
+        router.post("/resource/:id/status").handler(this::statusResource);
 
         // start server
         int port = config().getInteger("api.http.port", SERVER_PORT);
@@ -87,6 +88,20 @@ public class TurboApiVerticle extends AbstractVerticle {
     private RoutingContext stopResource(RoutingContext requestHandler) {
         vertx.eventBus().send("stop_resource", requestHandler.pathParam("id"));
         requestHandler.response().end();
+        return requestHandler;
+    }
+
+    private RoutingContext statusResource(RoutingContext requestHandler) {
+
+        vertx.eventBus().send("status_resource", requestHandler.pathParam("id"), h -> {
+            if (h != null && h.succeeded()) {
+                log.debug("Status: {}", h.result().body());
+                requestHandler.response().end();
+            } else {
+                requestHandler.response().setStatusCode(500).end();
+            }
+        });
+
         return requestHandler;
     }
 
