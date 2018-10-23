@@ -2,6 +2,7 @@ package sb001.miniturbo.vertex.k8s.service;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -22,9 +23,12 @@ import io.kubernetes.client.models.V1StatefulSet;
 import io.kubernetes.client.util.Config;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import sb001.miniturbo.vertex.k8s.service.dto.Status;
 
 @Slf4j
 public class K8sService {
+
+    private static final int TIMEOUT = 1;
 
     private static final String PRETTY = "true";
 
@@ -168,6 +172,68 @@ public class K8sService {
 
     private boolean isConfigMap(String doc) {
         return StringUtils.contains(doc, "kind: ConfigMap");
+    }
+
+    public Status status(String yaml) {
+
+        Status.StatusBuilder statusBuilder = Status.builder();
+        statusBuilder.ready(Boolean.FALSE);
+
+        parseDocuments(yaml).stream().forEach(k8sDeployment -> {
+
+            if (k8sDeployment instanceof V1Pod) {
+
+                Optional<V1Pod> pod = searchPodByName(((V1Pod) k8sDeployment).getMetadata().getName());
+                log.debug("Pod: {}", pod);
+
+            } else if (k8sDeployment instanceof V1Deployment) {
+
+                searchDeploymentByName(((V1Deployment) k8sDeployment).getMetadata().getName()).ifPresent(deploy -> {
+                    statusBuilder.ready(deploy.getStatus().getAvailableReplicas() >= 1);
+                });
+
+            } else if (k8sDeployment instanceof V1Service) {
+
+                searchServiceByName(((V1Service) k8sDeployment).getMetadata().getName()).ifPresent(service -> {
+                    statusBuilder.serviceExternalIPs(service.getSpec().getExternalIPs());
+                });
+
+            } else if (k8sDeployment instanceof V1StatefulSet) {
+
+                searchStatefulSetByName(((V1StatefulSet) k8sDeployment).getMetadata().getName())
+                        .ifPresent(statefulSet -> {
+                            statusBuilder.ready(statefulSet.getStatus().getReadyReplicas() >= 1);
+                        });
+
+            }
+
+        });
+
+        return statusBuilder.build();
+    }
+
+    @SneakyThrows()
+    private Optional<V1Pod> searchPodByName(String name) {
+        return coreV1Api.listNamespacedPod(namespace, PRETTY, null, null, true, null, null, null, TIMEOUT, null)
+                .getItems().stream().filter(p -> p.getMetadata().getName().equals(name)).findFirst();
+    }
+
+    @SneakyThrows()
+    private Optional<V1Deployment> searchDeploymentByName(String name) {
+        return appsV1Api.listNamespacedDeployment(namespace, PRETTY, null, null, true, null, null, null, 3000, null)
+                .getItems().stream().filter(p -> p.getMetadata().getName().equals(name)).findFirst();
+    }
+
+    @SneakyThrows()
+    private Optional<V1StatefulSet> searchStatefulSetByName(String name) {
+        return appsV1Api.listNamespacedStatefulSet(namespace, PRETTY, null, null, true, null, null, null, 3000, null)
+                .getItems().stream().filter(p -> p.getMetadata().getName().equals(name)).findFirst();
+    }
+
+    @SneakyThrows()
+    private Optional<V1Service> searchServiceByName(String name) {
+        return coreV1Api.listNamespacedService(namespace, PRETTY, null, null, true, null, null, null, 3000, null)
+                .getItems().stream().filter(p -> p.getMetadata().getName().equals(name)).findFirst();
     }
 
 }

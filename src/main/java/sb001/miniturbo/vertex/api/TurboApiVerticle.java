@@ -30,7 +30,7 @@ public class TurboApiVerticle extends AbstractVerticle {
         router.get("/resource").handler(this::findAllResources);
         router.post("/resource/:id/start").handler(this::startResource);
         router.post("/resource/:id/stop").handler(this::stopResource);
-        router.post("/resource/:id/status").handler(this::statusResource);
+        router.get("/resource/:id/status").handler(this::statusResource);
 
         // start server
         int port = config().getInteger("api.http.port", SERVER_PORT);
@@ -91,18 +91,27 @@ public class TurboApiVerticle extends AbstractVerticle {
         return requestHandler;
     }
 
-    private RoutingContext statusResource(RoutingContext requestHandler) {
+    private RoutingContext statusResource(RoutingContext rH) {
 
-        vertx.eventBus().send("status_resource", requestHandler.pathParam("id"), h -> {
-            if (h != null && h.succeeded()) {
-                log.debug("Status: {}", h.result().body());
-                requestHandler.response().end();
-            } else {
-                requestHandler.response().setStatusCode(500).end();
-            }
-        });
+        ObservableFuture<Record> discoveryObservable = RxHelper.observableFuture();
+        discoveryObservable.filter(Objects::nonNull).map(record -> discovery.getReference(record))
+                .map(reference -> reference.getAs(HttpClient.class)).subscribe(hC -> {
 
-        return requestHandler;
+                    hC.getNow(String.format("/%s/status", rH.pathParam("id")), kH -> {
+
+                        if (kH.statusCode() == 200) {
+                            kH.bodyHandler(bH -> rH.response().end(bH));
+                        } else {
+                            rH.response().setStatusCode(404).end();
+                        }
+
+                    });
+
+                });
+
+        discovery.getRecord(r -> r.getName().equals("miniturbo-k8s"), discoveryObservable.toHandler());
+
+        return rH;
     }
 
 }

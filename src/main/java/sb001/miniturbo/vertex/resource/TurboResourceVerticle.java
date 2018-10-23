@@ -31,15 +31,14 @@ public class TurboResourceVerticle extends AbstractVerticle {
 
         // start server
         int port = config().getInteger("resource.http.port", SERVER_PORT);
-        vertx.createHttpServer().requestHandler(router::accept).listen(port, lHand -> {
-            if (lHand.succeeded()) {
+        vertx.createHttpServer().requestHandler(router::accept).listen(port, lH -> {
+            if (lH.succeeded()) {
                 log.info("Resource server is ready.");
                 if (config().getBoolean("resource.service.publish", Boolean.TRUE)) {
                     ServiceDiscovery.create(vertx).publish(
-                            HttpEndpoint.createRecord("miniturbo-resource", "localhost", SERVER_PORT, "/"),
-                            sdHandler -> {
-                                if (sdHandler.succeeded()) {
-                                    log.info("Service {} published", sdHandler.result().getName());
+                            HttpEndpoint.createRecord("miniturbo-resource", "localhost", SERVER_PORT, "/"), h -> {
+                                if (h.succeeded()) {
+                                    log.info("Service {} published", h.result().getName());
                                 }
                             });
                 }
@@ -52,9 +51,9 @@ public class TurboResourceVerticle extends AbstractVerticle {
     private RoutingContext getById(RoutingContext requestHandler) {
 
         String fileName = String.format("deployments/%s.yaml", requestHandler.pathParam("id"));
-        vertx.fileSystem().readFile(fileName, fileHandler -> {
-            if (fileHandler.succeeded()) {
-                requestHandler.response().end(String.valueOf(fileHandler.result()));
+        vertx.fileSystem().readFile(fileName, fH -> {
+            if (fH.succeeded()) {
+                requestHandler.response().end(String.valueOf(fH.result()));
             } else {
                 requestHandler.response().setStatusCode(404).end();
             }

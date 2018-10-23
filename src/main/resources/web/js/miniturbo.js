@@ -8,32 +8,56 @@ class ResourceItem extends React.Component {
 	constructor(props) {
 	    super(props);
 	    this.handleChange = this.handleChange.bind(this);
-	    this.state = {value: "off"};
-	    this.checkState();
+	    this.state = {value: "off", retry: 0};
+	    this.checkState(100, false);
 	}
 	
-	checkState() {
+	checkState(delay, retry) {
 		_.delay(() => {
 			console.log('Hi! Im Elfo.');
-			this.setState({value: "off"});
 			$.ajax({
-				url: "/api/resource/" + this.props.resource "/state",
+				url: "/api/resource/" + this.props.resource + "/status",
 				success: (response) => {
-					data = JSON.parse(data);
-					console.log(data);
+					var data = JSON.parse(response);
+					console.log("Response: ", data, this.state);
+					if (data.ready) {
+						console.log("We are good!");
+						if (this.state.value == "off") {
+							this.turnOn();
+						}
+						this.state.retry = 0;
+					} else if (this.state.retry >= 30) {
+						this.turnOff();
+					} else if (retry) {
+						this.setState({value: this.state.value, retry: this.state.retry + 1});
+						this.checkState(delay, retry);
+					}
 				},
-				error: () => {
-					//this.toggleResource(this.state.value);	
+				error: (response) => {
+					console.log("Fail: ", response);
+					this.setState({value: this.state.value, retry: this.state.retry + 1});
 				}
 			});
-		}, 3000);
+		}, delay);
+	}
+	
+	turnOff() {
+		this.setState({value: "off"});
+		this.toggleResource(this.state.value);
+	}
+	
+	turnOn() {
+		this.setState({value: "on"});
+		this.toggleResource(this.state.value);
 	}
 	
 	handleChange(value, event) {
 		console.log( "Toggle", this.props.resource, value);
 		this.setState({ value });
 		this.toggleResource(value);
-		this.checkState();
+		if (value == "on") {
+			this.checkState(10000, true);
+		}
 	}
 	
 	toggleResource(value) {
