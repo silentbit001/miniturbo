@@ -179,31 +179,34 @@ public class K8sService {
         Status.StatusBuilder statusBuilder = Status.builder();
         statusBuilder.ready(Boolean.FALSE);
 
-        parseDocuments(yaml).stream().forEach(k8sDeployment -> {
+        parseDocuments(yaml).stream().forEach(k8sObj -> {
 
-            if (k8sDeployment instanceof V1Pod) {
+            if (k8sObj instanceof V1Pod) {
 
-                Optional<V1Pod> pod = searchPodByName(((V1Pod) k8sDeployment).getMetadata().getName());
+                Optional<V1Pod> pod = searchPodByName(((V1Pod) k8sObj).getMetadata().getName());
                 log.debug("Pod: {}", pod);
 
-            } else if (k8sDeployment instanceof V1Deployment) {
+            } else if (k8sObj instanceof V1Deployment) {
 
-                searchDeploymentByName(((V1Deployment) k8sDeployment).getMetadata().getName()).ifPresent(deploy -> {
+                searchDeploymentByName(((V1Deployment) k8sObj).getMetadata().getName()).ifPresent(deploy -> {
                     statusBuilder.ready(deploy.getStatus().getAvailableReplicas() >= 1);
+                    statusBuilder.image(deploy.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
                 });
 
-            } else if (k8sDeployment instanceof V1Service) {
+            } else if (k8sObj instanceof V1Service) {
 
-                searchServiceByName(((V1Service) k8sDeployment).getMetadata().getName()).ifPresent(service -> {
-                    statusBuilder.serviceExternalIPs(service.getSpec().getExternalIPs());
+                V1Service service = (V1Service) k8sObj;
+                searchServiceByName(service.getMetadata().getName()).ifPresent(remoteService -> {
+                    statusBuilder.ports(remoteService.getSpec().getPorts().stream()
+                            .collect(Collectors.toMap(p -> p.getPort(), p -> p.getNodePort())));
+
                 });
 
-            } else if (k8sDeployment instanceof V1StatefulSet) {
+            } else if (k8sObj instanceof V1StatefulSet) {
 
-                searchStatefulSetByName(((V1StatefulSet) k8sDeployment).getMetadata().getName())
-                        .ifPresent(statefulSet -> {
-                            statusBuilder.ready(statefulSet.getStatus().getReadyReplicas() >= 1);
-                        });
+                searchStatefulSetByName(((V1StatefulSet) k8sObj).getMetadata().getName()).ifPresent(statefulSet -> {
+                    statusBuilder.ready(statefulSet.getStatus().getReadyReplicas() >= 1);
+                });
 
             }
 

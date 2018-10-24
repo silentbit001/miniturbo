@@ -1,6 +1,6 @@
 package sb001.miniturbo.vertex.k8s.service.dto;
 
-import java.util.List;
+import java.util.Map;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -9,8 +9,7 @@ import lombok.Getter;
 @Builder
 public class Status {
 
-    private List<String> serviceExternalIPs;
-    private List<Integer> serviceExternalPorts;
+    private Map<Integer, Integer> ports;
     private String image;
 
     private Boolean ready;

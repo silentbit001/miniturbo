@@ -19,12 +19,11 @@ spec:
         image: delermando/docker-cassandra-web:v0.4.0
         ports:
         - containerPort: 3000
-        env:
-        - name: CASSANDRA_HOST_IP 
-          value: ${CASSANDRA_SERVICE_HOST}
-        - name: CASSANDRA_PORT 
-          value: 9042
-
+        command: 
+        - "/bin/sh"
+        args: 
+        - "-c" 
+        - "cassandra-web --hosts $CASSANDRA_SERVICE_HOST --port 9042 --username cassandra --password cassandra"
 ---
 kind: Service
 apiVersion: v1
