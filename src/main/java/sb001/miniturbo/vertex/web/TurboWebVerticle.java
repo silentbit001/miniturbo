@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TurboWebVerticle extends AbstractVerticle {
 
-    private static final int SERVER_PORT = 8080;
+    public static final int SERVER_PORT = 8080;
 
     @Override
     public void start(Future<Void> startFuture) throws Exception {
@@ -46,9 +46,12 @@ public class TurboWebVerticle extends AbstractVerticle {
 
         // start server
         int port = config().getInteger("web.http.port", SERVER_PORT);
-        vertx.createHttpServer().requestHandler(router::accept).listen(port, lHand -> {
-            if (lHand.succeeded()) {
+        vertx.createHttpServer().requestHandler(router::accept).listen(port, lH -> {
+            if (lH.succeeded()) {
                 log.info("Miniturbo web server ready.");
+                startFuture.complete();
+            } else {
+                startFuture.fail(lH.cause());
             }
         });
 

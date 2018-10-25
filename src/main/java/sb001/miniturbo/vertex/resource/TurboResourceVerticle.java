@@ -42,6 +42,9 @@ public class TurboResourceVerticle extends AbstractVerticle {
                                 }
                             });
                 }
+                startFuture.complete();
+            } else {
+                startFuture.fail(lH.cause());
             }
 
         });

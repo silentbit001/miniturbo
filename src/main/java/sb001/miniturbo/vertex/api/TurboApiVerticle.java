@@ -34,10 +34,10 @@ public class TurboApiVerticle extends AbstractVerticle {
 
         // start server
         int port = config().getInteger("api.http.port", SERVER_PORT);
-        vertx.createHttpServer().requestHandler(router::accept).listen(port, lHand -> {
-            if (lHand.succeeded()) {
+        vertx.createHttpServer().requestHandler(router::accept).listen(port, lH -> {
+            if (lH.succeeded()) {
                 log.info("TurboApi server ready.");
-
+                startFuture.complete();
                 if (config().getBoolean("resource.service.publish", Boolean.TRUE)) {
                     discovery.publish(HttpEndpoint.createRecord("miniturbo-api", "localhost", SERVER_PORT, "/"),
                             sdHandler -> {
@@ -47,6 +47,8 @@ public class TurboApiVerticle extends AbstractVerticle {
                             });
                 }
 
+            } else {
+                startFuture.fail(lH.cause());
             }
         });
 

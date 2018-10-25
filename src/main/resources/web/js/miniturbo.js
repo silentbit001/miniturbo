@@ -108,7 +108,7 @@ class ResourceList extends React.Component{
 	componentDidMount() {
 	    this.timerID = setInterval(
 	      () => this.poll(),
-	      5000
+	      10000
 	    );
 	}
 	

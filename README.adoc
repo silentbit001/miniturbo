@@ -21,6 +21,14 @@ To run your application:
 ./mvnw clean exec:java
 ```
 
+== Docker
+
+```
+mvn docker:build
+docker build -t sample/vertx-java-fat .
+docker run -t -i -p 8080:8080 sample/vertx-java-fat
+```
+
 == Help
 
 * https://vertx.io/docs/[Vert.x Documentation]

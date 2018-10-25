@@ -32,9 +32,10 @@ public class TurboK8sVerticle extends AbstractVerticle {
 
             // start server
             int port = config().getInteger("resource.http.port", SERVER_PORT);
-            vertx.createHttpServer().requestHandler(router::accept).listen(port, lHand -> {
-                if (lHand.succeeded()) {
+            vertx.createHttpServer().requestHandler(router::accept).listen(port, lH -> {
+                if (lH.succeeded()) {
                     log.info("K8s server is ready.");
+                    startFuture.complete();
                     k8sService = new K8sService();
                     if (config().getBoolean("resource.service.publish", Boolean.TRUE)) {
                         dH.publish(HttpEndpoint.createRecord("miniturbo-k8s", "localhost", SERVER_PORT, "/"),
@@ -44,6 +45,8 @@ public class TurboK8sVerticle extends AbstractVerticle {
                                     }
                                 });
                     }
+                } else {
+                    startFuture.fail(lH.cause());
                 }
 
             });

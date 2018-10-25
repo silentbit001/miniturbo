@@ -21,6 +21,8 @@
 		<junit-platform-surefire-provider.version>1.2.0</junit-platform-surefire-provider.version>
 		<junit-platform-launcher.version>1.2.0</junit-platform-launcher.version>
 
+		<docker.image>sb001/miniturbo</docker.image>
+
 		<main.verticle>sb001.miniturbo.vertex.MiniTurboVerticle</main.verticle>
 	</properties>
 
@@ -99,6 +101,7 @@
 			<version>2.9.7</version>
 		</dependency>
 
+		<!-- test -->
 		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-junit5</artifactId>
@@ -112,6 +115,22 @@
 			<version>${junit-platform-launcher.version}</version>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- legacy test -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-unit</artifactId>
+			<version>${vertx.version}</version>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -186,6 +205,33 @@
 						<argument>run</argument>
 						<argument>${main.verticle}</argument>
 					</arguments>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.spotify</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>0.2.8</version>
+				<executions>
+					<execution>
+						<id>docker</id>
+						<phase>package</phase>
+						<goals>
+							<goal>build</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<dockerDirectory>${project.basedir}/src/main/docker</dockerDirectory>
+					<imageName>${docker.image}</imageName>
+					<resources>
+						<resource>
+							<targetPath>/verticles</targetPath>
+							<directory>${project.build.directory}</directory>
+							<includes>
+								<include>${project.artifactId}-${project.version}-fat.jar</include>
+							</includes>
+						</resource>
+					</resources>
 				</configuration>
 			</plugin>
 		</plugins>
