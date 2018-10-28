@@ -13,13 +13,13 @@ import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import lombok.extern.slf4j.Slf4j;
-import sb001.miniturbo.vertex.k8s.service.K8sService;
+import sb001.miniturbo.vertex.k8s.service.K8sServiceV2;
 import sb001.miniturbo.vertex.k8s.service.dto.Status;
 
 @Slf4j
 public class TurboK8sVerticle extends AbstractVerticle {
 
-    private K8sService k8sService;
+    private K8sServiceV2 k8sService;
     public static final int SERVER_PORT = 8083;
 
     @Override
@@ -36,7 +36,7 @@ public class TurboK8sVerticle extends AbstractVerticle {
                 if (lH.succeeded()) {
                     log.info("K8s server is ready.");
                     startFuture.complete();
-                    k8sService = new K8sService();
+                    k8sService = new K8sServiceV2();
                     if (config().getBoolean("resource.service.publish", Boolean.TRUE)) {
                         dH.publish(HttpEndpoint.createRecord("miniturbo-k8s", "localhost", SERVER_PORT, "/"),
                                 sdHandler -> {

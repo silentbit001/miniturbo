@@ -29,6 +29,12 @@ docker build -t sample/vertx-java-fat .
 docker run -t -i -p 8080:8080 sample/vertx-java-fat
 ```
 
+== Minikube Deployment
+
+```
+kubectl apply -f https://raw.githubusercontent.com/silentbit001/miniturbo/master/k8s/deployment.yaml
+```
+
 == Help
 
 * https://vertx.io/docs/[Vert.x Documentation]

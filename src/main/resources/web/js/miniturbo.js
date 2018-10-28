@@ -81,7 +81,7 @@ class ResourceItem extends React.Component {
 		return (
 			<Row>
 				<Col sm={1}></Col>
-			 	<Col sm={1}>{this.props.resource}</Col>
+			 	<Col sm={2}>{this.props.resource}</Col>
 			 	<Col sm={1}>
 			 		<ToggleButtonGroup type="radio" name="options" value={this.state.value} defaultValue={this.state.value} onChange={this.handleChange}>
 			 			<ToggleButton value={"on"}>on</ToggleButton>

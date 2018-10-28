@@ -1,5 +1,6 @@
 package sb001.miniturbo.vertex.k8s.service;
 
+import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -14,13 +15,14 @@ import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.Configuration;
 import io.kubernetes.client.apis.AppsV1Api;
 import io.kubernetes.client.apis.CoreV1Api;
+import io.kubernetes.client.auth.ApiKeyAuth;
 import io.kubernetes.client.models.V1ConfigMap;
 import io.kubernetes.client.models.V1DeleteOptions;
 import io.kubernetes.client.models.V1Deployment;
 import io.kubernetes.client.models.V1Pod;
 import io.kubernetes.client.models.V1Service;
 import io.kubernetes.client.models.V1StatefulSet;
-import io.kubernetes.client.util.Config;
+import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import sb001.miniturbo.vertex.k8s.service.dto.Status;
@@ -29,8 +31,9 @@ import sb001.miniturbo.vertex.k8s.service.dto.Status;
 public class K8sService {
 
     private static final int TIMEOUT = 1;
-
     private static final String PRETTY = "true";
+    private String tokenUri = "/var/run/secrets/kubernetes.io/serviceaccount/token";
+    private String caUri = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
 
     private CoreV1Api coreV1Api;
     private AppsV1Api appsV1Api;
@@ -39,13 +42,25 @@ public class K8sService {
     private ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
     public K8sService() {
-        this("default");
+        this("default", Vertx.vertx());
+    }
+
+    public K8sService(Vertx vertx) {
+        this("default", vertx);
     }
 
     @SneakyThrows
-    public K8sService(String namespace) {
-        ApiClient client = Config.defaultClient();
-        Configuration.setDefaultApiClient(client);
+    public K8sService(String namespace, Vertx vertx) {
+
+        String apiToken = vertx.fileSystem().readFileBlocking(tokenUri).toString();
+        ApiClient apiClient = Configuration.getDefaultApiClient();
+        ApiKeyAuth bearerToken = (ApiKeyAuth) apiClient.getAuthentication("BearerToken");
+        bearerToken.setApiKey(apiToken);
+        bearerToken.setApiKeyPrefix("Bearer");
+
+        apiClient.setSslCaCert(new ByteArrayInputStream(vertx.fileSystem().readFileBlocking(caUri).getBytes()));
+
+        // ApiClient client = Config.defaultClient();
         this.coreV1Api = new CoreV1Api();
         this.appsV1Api = new AppsV1Api();
         this.namespace = namespace;

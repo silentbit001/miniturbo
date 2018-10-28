@@ -21,8 +21,7 @@
 		<junit-platform-surefire-provider.version>1.2.0</junit-platform-surefire-provider.version>
 		<junit-platform-launcher.version>1.2.0</junit-platform-launcher.version>
 
-		<docker.image>sb001/miniturbo</docker.image>
-
+		<docker.image>silentbit001/miniturbo</docker.image>
 		<main.verticle>sb001.miniturbo.vertex.MiniTurboVerticle</main.verticle>
 	</properties>
 
@@ -80,6 +79,11 @@
 			<version>${vertx.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-health-check</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 			<version>1.0.13</version>
@@ -94,6 +98,11 @@
 			<groupId>io.kubernetes</groupId>
 			<artifactId>client-java</artifactId>
 			<version>2.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.fabric8</groupId>
+			<artifactId>kubernetes-client</artifactId>
+			<version>4.1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -175,6 +184,11 @@
 										<!-- <Main-Class>io.vertx.core.Launcher</Main-Class> -->
 										<Main-Class>io.vertx.core.Starter</Main-Class>
 										<Main-Verticle>${main.verticle}</Main-Verticle>
+										<Specification-Title>${project.artifactId}</Specification-Title>
+										<Specification-Version>${project.version}</Specification-Version>
+										<Implementation-Title>${project.artifactId}</Implementation-Title>
+										<Implementation-Version>${project.version}</Implementation-Version>
+										<Implementation-Vendor-Id>${project.groupId}</Implementation-Vendor-Id>
 									</manifestEntries>
 								</transformer>
 								<transformer

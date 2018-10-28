@@ -1,10 +1,12 @@
 package sb001.miniturbo.vertex.api;
 
 import java.util.Objects;
+import java.util.jar.Manifest;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClient;
+import io.vertx.ext.healthchecks.HealthCheckHandler;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.rx.java.ObservableFuture;
@@ -31,6 +33,12 @@ public class TurboApiVerticle extends AbstractVerticle {
         router.post("/resource/:id/start").handler(this::startResource);
         router.post("/resource/:id/stop").handler(this::stopResource);
         router.get("/resource/:id/status").handler(this::statusResource);
+        router.get("/health").handler(HealthCheckHandler.create(vertx));
+        router.get("/info").handler(h -> {
+            vertx.fileSystem().readFile("META-INF/MANIFEST.MF", fH -> {
+                h.response().end(fH.result());
+            });
+        });
 
         // start server
         int port = config().getInteger("api.http.port", SERVER_PORT);
