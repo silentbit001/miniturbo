@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: default
   name: rabbitmq
   labels:
     app: rabbitmq
@@ -24,6 +25,7 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
+  namespace: default
   name: rabbitmq
 spec:
   type: NodePort

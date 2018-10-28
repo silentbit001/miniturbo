@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: default
   name: vault
   labels:
     app: vault
@@ -33,6 +34,7 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
+  namespace: default
   name: vault
 spec:
   type: NodePort

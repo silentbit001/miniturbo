@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: default
   name: redis-admin
   labels:
     app: redis-admin
@@ -23,6 +24,7 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
+  namespace: default
   name: redis-admin
 spec:
   type: NodePort

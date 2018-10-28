@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: default
   name: cassandra-admin
   labels:
     app: cassandra-admin
@@ -28,6 +29,7 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
+  namespace: default
   name: cassandra-admin
 spec:
   type: NodePort

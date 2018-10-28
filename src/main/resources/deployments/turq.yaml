@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: default
   name: turq
   labels:
     app: turq
@@ -30,6 +31,7 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
+  namespace: default
   name: turq
 spec:
   type: NodePort
