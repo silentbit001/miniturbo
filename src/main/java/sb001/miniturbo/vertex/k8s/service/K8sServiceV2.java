@@ -1,6 +1,7 @@
 package sb001.miniturbo.vertex.k8s.service;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,15 @@ import sb001.miniturbo.vertex.k8s.service.dto.Status;
 @Slf4j
 public class K8sServiceV2 {
 
+    /*
+     * io.fabric8.kubernetes.client.KubernetesClientException: Failure executing:
+     * GET at: https://10.96.0.1/apis/apps/v1/namespaces/default/deployments/vault.
+     * Message: Forbidden!Configured service account doesn't have access. Service
+     * account may have been revoked. deployments.apps "vault" is forbidden: User
+     * "system:serviceaccount:default:default" cannot get deployments.apps in the
+     * namespace "default".
+     */
+
     private KubernetesClient client;
     private ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
@@ -48,6 +58,7 @@ public class K8sServiceV2 {
 
     @SneakyThrows
     private Object parseDocumentToK8sModel(String doc) {
+
         if (isPod(doc)) {
             return mapper.readValue(doc, Pod.class);
         } else if (isDeployment(doc)) {
@@ -68,17 +79,17 @@ public class K8sServiceV2 {
     private void deploy(Object k8sDeployment) {
 
         if (k8sDeployment instanceof Pod) {
-            client.pods().create((Pod) k8sDeployment);
+            client.pods().createOrReplace((Pod) k8sDeployment);
         } else if (k8sDeployment instanceof Deployment) {
-            client.apps().deployments().create((Deployment) k8sDeployment);
+            client.apps().deployments().createOrReplace((Deployment) k8sDeployment);
         } else if (k8sDeployment instanceof Service) {
-            client.services().create((Service) k8sDeployment);
+            client.services().createOrReplace((Service) k8sDeployment);
         } else if (k8sDeployment instanceof StatefulSet) {
-            client.apps().statefulSets().create((StatefulSet) k8sDeployment);
+            client.apps().statefulSets().createOrReplace((StatefulSet) k8sDeployment);
         } else if (k8sDeployment instanceof ConfigMap) {
-            client.configMaps().create((ConfigMap) k8sDeployment);
+            client.configMaps().createOrReplace((ConfigMap) k8sDeployment);
         } else {
-            client.load(new ByteArrayInputStream(((String) k8sDeployment).getBytes())).createOrReplace();
+            client.load(toInputStream(k8sDeployment)).createOrReplace();
         }
 
     }
@@ -96,9 +107,19 @@ public class K8sServiceV2 {
         } else if (k8sDeployment instanceof ConfigMap) {
             client.configMaps().delete((ConfigMap) k8sDeployment);
         } else {
-            client.load(new ByteArrayInputStream(((String) k8sDeployment).getBytes())).delete();
+            client.load(toInputStream(k8sDeployment)).delete();
         }
 
+    }
+
+    private InputStream toInputStream(Object k8sDeployment) {
+
+        if (k8sDeployment instanceof String) {
+            String value = (String) k8sDeployment;
+            return new ByteArrayInputStream(value.getBytes());
+        }
+
+        return null;
     }
 
     private boolean isService(String doc) {
@@ -179,7 +200,6 @@ public class K8sServiceV2 {
 
     private Service searchServiceByName(String name) {
         return client.services().withName(name).get();
-
     }
 
 }
