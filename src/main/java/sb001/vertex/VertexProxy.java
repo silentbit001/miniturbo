@@ -9,9 +9,23 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class VertexProxy {
 
-    public static void proxy(HttpClient httpClient, HttpServerRequest request, String afterUri) {
-
+    public static void proxyUri(HttpClient httpClient, HttpServerRequest request, String afterUri) {
         final String uri = request.uri().split(afterUri)[1];
+        proxyTo(httpClient, request, uri);
+    }
+
+    public static void serviceProxyUri(ServiceDiscovery discovery, String serviceName, HttpServerRequest request,
+            String afterUri) {
+        VertexDiscovery.discoveryHttpClient(discovery, serviceName,
+                httpClient -> proxyUri(httpClient, request, afterUri));
+    }
+
+    public static void serviceProxyTo(ServiceDiscovery discovery, String serviceName, HttpServerRequest request,
+            String uri) {
+        VertexDiscovery.discoveryHttpClient(discovery, serviceName, httpClient -> proxyTo(httpClient, request, uri));
+    }
+
+    public static void proxyTo(HttpClient httpClient, HttpServerRequest request, final String uri) {
 
         final HttpClientRequest forwardRequest = httpClient.request(request.method(), uri, response -> {
             log.debug("Response status: {}", response.statusCode());
@@ -26,12 +40,6 @@ public class VertexProxy {
         forwardRequest.setChunked(true);
         request.handler(data -> forwardRequest.write(data));
         request.endHandler(h -> forwardRequest.end());
-
-    }
-
-    public static void serviceProxy(ServiceDiscovery discovery, String serviceName, HttpServerRequest request,
-            String afterUri) {
-        VertexDiscovery.discoveryHttpClient(discovery, serviceName, httpClient -> proxy(httpClient, request, afterUri));
     }
 
 }

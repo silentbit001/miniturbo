@@ -28,7 +28,7 @@ public class TurboWebVerticle extends AbstractVerticle {
 
         // proxy to miniturbo-api
         router.route("/api/*")
-                .handler(ctxt -> VertexProxy.serviceProxy(discovery, "miniturbo-api", ctxt.request(), "/api"));
+                .handler(ctxt -> VertexProxy.serviceProxyUri(discovery, "miniturbo-api", ctxt.request(), "/api"));
 
         // start server
         VertexServer.startServer(vertx, "miniturbo-web", config().getInteger("web.http.port", SERVER_PORT), router,

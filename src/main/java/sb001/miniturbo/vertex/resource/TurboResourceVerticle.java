@@ -13,10 +13,8 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.servicediscovery.ServiceDiscovery;
-import io.vertx.servicediscovery.types.HttpEndpoint;
-import lombok.extern.slf4j.Slf4j;
+import sb001.vertex.VertexServer;
 
-@Slf4j
 public class TurboResourceVerticle extends AbstractVerticle {
 
     public static final int SERVER_PORT = 8081;
@@ -31,68 +29,51 @@ public class TurboResourceVerticle extends AbstractVerticle {
 
         // start server
         int port = config().getInteger("resource.http.port", SERVER_PORT);
-        vertx.createHttpServer().requestHandler(router::accept).listen(port, lH -> {
-            if (lH.succeeded()) {
-                log.info("Resource server is ready.");
-                if (config().getBoolean("resource.service.publish", Boolean.TRUE)) {
-                    ServiceDiscovery.create(vertx).publish(
-                            HttpEndpoint.createRecord("miniturbo-resource", "localhost", SERVER_PORT, "/"), h -> {
-                                if (h.succeeded()) {
-                                    log.info("Service {} published", h.result().getName());
-                                }
-                            });
-                }
-                startFuture.complete();
-            } else {
-                startFuture.fail(lH.cause());
-            }
-
-        });
+        boolean publishService = config().getBoolean("resource.service.publish", Boolean.TRUE);
+        ServiceDiscovery discovery = publishService ? ServiceDiscovery.create(vertx) : null;
+        VertexServer.startServer(vertx, "miniturbo-resource", port, router, discovery, startFuture);
 
     }
 
-    private RoutingContext getById(RoutingContext requestHandler) {
+    private RoutingContext getById(RoutingContext h) {
 
-        String fileName = String.format("deployments/%s.yaml", requestHandler.pathParam("id"));
-        vertx.fileSystem().readFile(fileName, fH -> {
-            if (fH.succeeded()) {
-                requestHandler.response().end(String.valueOf(fH.result()));
+        String fileName = String.format("deployments/%s.yaml", h.pathParam("id"));
+        vertx.fileSystem().readFile(fileName, f -> {
+            if (f.succeeded()) {
+                h.response().end(String.valueOf(f.result()));
             } else {
-                requestHandler.response().setStatusCode(404).end();
+                h.response().setStatusCode(404).end();
             }
         });
 
-        return requestHandler;
+        return h;
     }
 
-    private RoutingContext findAll(RoutingContext requestHandler) {
+    private RoutingContext findAll(RoutingContext h) {
 
-        vertx.fileSystem().readDir("deployments/", dirHandler -> {
+        vertx.fileSystem().readDir("deployments/", d -> {
 
-            if (dirHandler.succeeded()) {
+            if (d.succeeded()) {
 
-                List<String> embeddedResources = dirHandler.result().stream().map(this::extractResourceNameFromFile)
+                List<String> embeddedResources = d.result().stream().map(this::extractResourceNameFromFile)
                         .filter(StringUtils::isNotBlank).collect(Collectors.toList());
 
-                requestHandler.response().end(new JsonArray(embeddedResources).encodePrettily());
+                h.response().end(new JsonArray(embeddedResources).encodePrettily());
 
             } else {
-                requestHandler.response().setStatusCode(404).end();
+                h.response().setStatusCode(404).end();
             }
 
         });
 
-        return requestHandler;
+        return h;
     }
 
     private String extractResourceNameFromFile(String url) {
-
         Matcher matcher = deploymentPattern.matcher(url);
-
         if (matcher.find()) {
             return matcher.group(1);
         }
-
         return null;
     }
 

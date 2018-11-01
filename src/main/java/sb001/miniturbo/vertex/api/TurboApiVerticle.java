@@ -6,7 +6,7 @@ import io.vertx.ext.healthchecks.HealthCheckHandler;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.servicediscovery.ServiceDiscovery;
-import sb001.vertex.VertexDiscovery;
+import sb001.vertex.VertexProxy;
 import sb001.vertex.VertexServer;
 
 public class TurboApiVerticle extends AbstractVerticle {
@@ -40,42 +40,25 @@ public class TurboApiVerticle extends AbstractVerticle {
     }
 
     private RoutingContext findAllResources(RoutingContext request) {
-        VertexDiscovery.discoveryHttpClient(discovery, "miniturbo-resource", httpClient -> {
-            httpClient.getNow("/", resourcesResponse -> {
-                if (resourcesResponse.statusCode() == 200) {
-                    resourcesResponse.bodyHandler(bodyHandler -> {
-                        request.response().end(bodyHandler);
-                    });
-                } else {
-                    request.response().setStatusCode(resourcesResponse.statusCode()).end();
-                }
-            });
-        });
+        VertexProxy.serviceProxyTo(discovery, "miniturbo-resource", request.request(), "/");
         return request;
     }
 
     private RoutingContext startResource(RoutingContext requestHandler) {
         vertx.eventBus().send("start_resource", requestHandler.pathParam("id"));
-        requestHandler.response().end();
+        requestHandler.response().setStatusCode(202).end();
         return requestHandler;
     }
 
     private RoutingContext stopResource(RoutingContext requestHandler) {
         vertx.eventBus().send("stop_resource", requestHandler.pathParam("id"));
-        requestHandler.response().end();
+        requestHandler.response().setStatusCode(202).end();
         return requestHandler;
     }
 
     private RoutingContext statusResource(RoutingContext request) {
-        VertexDiscovery.discoveryHttpClient(discovery, "miniturbo-k8s", httpClient -> {
-            httpClient.getNow(String.format("/%s/status", request.pathParam("id")), k8sResponse -> {
-                if (k8sResponse.statusCode() == 200) {
-                    k8sResponse.bodyHandler(bH -> request.response().end(bH));
-                } else {
-                    request.response().setStatusCode(k8sResponse.statusCode()).end();
-                }
-            });
-        });
+        String uri = String.format("/%s/status", request.pathParam("id"));
+        VertexProxy.serviceProxyTo(discovery, "miniturbo-k8s", request.request(), uri);
         return request;
     }
 
