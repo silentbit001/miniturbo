@@ -33,6 +33,7 @@ public class VertexServer {
                 discovery.publish(HttpEndpoint.createRecord(serverName, "localhost", port, "/"), h -> {
                     if (h.succeeded()) {
                         log.info("Service {} published", serverName);
+                        startFuture.complete();
                     } else {
                         startFuture.fail(h.cause());
                         log.error("Failed to publish service {}", serverName, h.cause());
