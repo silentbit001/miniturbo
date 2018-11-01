@@ -1,24 +1,24 @@
-= Pb
+= Miniturbo
 
 image:https://img.shields.io/badge/vert.x-3.5.4-purple.svg[link="https://vertx.io"]
+image:https://img.shields.io/badge/docker-blue.svg[link="https://hub.docker.com/r/silentbit001/miniturbo/"]
 
-This application was generated using http://start.vertx.io
+Miniturbo allow you deploy basic resources in you minikube in minutes just with a button click.
+
+== Embedded Deployments
+
+* cassandra
+* mongo
+* redis
+* rabbitmq
+* vault
+* consul
+* turq (http resource mocker)
 
 == Building
 
-To launch your tests:
 ```
-./mvnw clean test
-```
-
-To package your application:
-```
-./mvnw clean package
-```
-
-To run your application:
-```
-./mvnw clean exec:java
+./mvnw clean intall
 ```
 
 == Docker
@@ -31,15 +31,34 @@ docker run -t -i -p 8080:8080 sample/vertx-java-fat
 
 == Minikube Deployment
 
+Starting minikube:
+```
+minikube start
+```
+
+or 
+
+```
+minikube start --memory 4096 --cpus 4
+```
+
+===Deploying miniturbo
 ```
 kubectl apply -f https://raw.githubusercontent.com/silentbit001/miniturbo/master/k8s/deployment.yaml
+```
+
+Portforwarding miniturbo service:
+```
+minikube service miniturbo
 ```
 
 == Help
 
 * https://vertx.io/docs/[Vert.x Documentation]
-* https://stackoverflow.com/questions/tagged/vert.x?sort=newest&pageSize=15[Vert.x Stack Overflow]
-* https://groups.google.com/forum/?fromgroups#!forum/vertx[Vert.x User Group]
-* https://gitter.im/eclipse-vertx/vertx-users[Vert.x Gitter]
+* https://hub.docker.com/r/silentbit001/miniturbo/[Miniturbo]
+* https://github.com/vfaronov/turq[Turq]
 
+
+
+This application was generated using http://start.vertx.io
 

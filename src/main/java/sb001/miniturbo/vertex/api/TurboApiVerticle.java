@@ -1,22 +1,14 @@
 package sb001.miniturbo.vertex.api;
 
-import java.util.Objects;
-import java.util.jar.Manifest;
-
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpClient;
 import io.vertx.ext.healthchecks.HealthCheckHandler;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.rx.java.ObservableFuture;
-import io.vertx.rx.java.RxHelper;
-import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
-import io.vertx.servicediscovery.types.HttpEndpoint;
-import lombok.extern.slf4j.Slf4j;
+import sb001.vertex.VertexDiscovery;
+import sb001.vertex.VertexServer;
 
-@Slf4j
 public class TurboApiVerticle extends AbstractVerticle {
 
     public static final int SERVER_PORT = 8082;
@@ -42,51 +34,24 @@ public class TurboApiVerticle extends AbstractVerticle {
 
         // start server
         int port = config().getInteger("api.http.port", SERVER_PORT);
-        vertx.createHttpServer().requestHandler(router::accept).listen(port, lH -> {
-            if (lH.succeeded()) {
-                log.info("TurboApi server ready.");
-                startFuture.complete();
-                if (config().getBoolean("resource.service.publish", Boolean.TRUE)) {
-                    discovery.publish(HttpEndpoint.createRecord("miniturbo-api", "localhost", SERVER_PORT, "/"),
-                            sdHandler -> {
-                                if (sdHandler.succeeded()) {
-                                    log.info("Service {} published", sdHandler.result().getName());
-                                }
-                            });
-                }
-
-            } else {
-                startFuture.fail(lH.cause());
-            }
-        });
+        Boolean publishService = config().getBoolean("resource.service.publish", Boolean.TRUE);
+        VertexServer.startServer(vertx, "miniturbo-api", port, router, publishService ? discovery : null, startFuture);
 
     }
 
-    private RoutingContext findAllResources(RoutingContext requestHandler) {
-
-        ObservableFuture<Record> discoveryObservable = RxHelper.observableFuture();
-        discoveryObservable.filter(Objects::nonNull).map(record -> discovery.getReference(record))
-                .map(reference -> reference.getAs(HttpClient.class)).subscribe(httpClient -> {
-
-                    httpClient.getNow("/", res -> {
-
-                        if (res.statusCode() == 200) {
-
-                            res.bodyHandler(bodyHandler -> {
-                                requestHandler.response().end(bodyHandler);
-                            });
-
-                        } else {
-                            requestHandler.response().setStatusCode(404).end();
-                        }
-
+    private RoutingContext findAllResources(RoutingContext request) {
+        VertexDiscovery.discoveryHttpClient(discovery, "miniturbo-resource", httpClient -> {
+            httpClient.getNow("/", resourcesResponse -> {
+                if (resourcesResponse.statusCode() == 200) {
+                    resourcesResponse.bodyHandler(bodyHandler -> {
+                        request.response().end(bodyHandler);
                     });
-
-                });
-
-        discovery.getRecord(r -> r.getName().equals("miniturbo-resource"), discoveryObservable.toHandler());
-
-        return requestHandler;
+                } else {
+                    request.response().setStatusCode(resourcesResponse.statusCode()).end();
+                }
+            });
+        });
+        return request;
     }
 
     private RoutingContext startResource(RoutingContext requestHandler) {
@@ -101,27 +66,17 @@ public class TurboApiVerticle extends AbstractVerticle {
         return requestHandler;
     }
 
-    private RoutingContext statusResource(RoutingContext rH) {
-
-        ObservableFuture<Record> discoveryObservable = RxHelper.observableFuture();
-        discoveryObservable.filter(Objects::nonNull).map(record -> discovery.getReference(record))
-                .map(reference -> reference.getAs(HttpClient.class)).subscribe(hC -> {
-
-                    hC.getNow(String.format("/%s/status", rH.pathParam("id")), kH -> {
-
-                        if (kH.statusCode() == 200) {
-                            kH.bodyHandler(bH -> rH.response().end(bH));
-                        } else {
-                            rH.response().setStatusCode(404).end();
-                        }
-
-                    });
-
-                });
-
-        discovery.getRecord(r -> r.getName().equals("miniturbo-k8s"), discoveryObservable.toHandler());
-
-        return rH;
+    private RoutingContext statusResource(RoutingContext request) {
+        VertexDiscovery.discoveryHttpClient(discovery, "miniturbo-k8s", httpClient -> {
+            httpClient.getNow(String.format("/%s/status", request.pathParam("id")), k8sResponse -> {
+                if (k8sResponse.statusCode() == 200) {
+                    k8sResponse.bodyHandler(bH -> request.response().end(bH));
+                } else {
+                    request.response().setStatusCode(k8sResponse.statusCode()).end();
+                }
+            });
+        });
+        return request;
     }
 
 }

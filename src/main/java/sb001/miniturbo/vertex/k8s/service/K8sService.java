@@ -1,6 +1,7 @@
 package sb001.miniturbo.vertex.k8s.service;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -11,18 +12,13 @@ import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
-import io.kubernetes.client.ApiClient;
-import io.kubernetes.client.Configuration;
-import io.kubernetes.client.apis.AppsV1Api;
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.auth.ApiKeyAuth;
-import io.kubernetes.client.models.V1ConfigMap;
-import io.kubernetes.client.models.V1DeleteOptions;
-import io.kubernetes.client.models.V1Deployment;
-import io.kubernetes.client.models.V1Pod;
-import io.kubernetes.client.models.V1Service;
-import io.kubernetes.client.models.V1StatefulSet;
-import io.vertx.core.Vertx;
+import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.Service;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import sb001.miniturbo.vertex.k8s.service.dto.Status;
@@ -30,40 +26,11 @@ import sb001.miniturbo.vertex.k8s.service.dto.Status;
 @Slf4j
 public class K8sService {
 
-    private static final int TIMEOUT = 1;
-    private static final String PRETTY = "true";
-    private String tokenUri = "/var/run/secrets/kubernetes.io/serviceaccount/token";
-    private String caUri = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
-
-    private CoreV1Api coreV1Api;
-    private AppsV1Api appsV1Api;
-    private String namespace;
-
+    private KubernetesClient client;
     private ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
     public K8sService() {
-        this("default", Vertx.vertx());
-    }
-
-    public K8sService(Vertx vertx) {
-        this("default", vertx);
-    }
-
-    @SneakyThrows
-    public K8sService(String namespace, Vertx vertx) {
-
-        String apiToken = vertx.fileSystem().readFileBlocking(tokenUri).toString();
-        ApiClient apiClient = Configuration.getDefaultApiClient();
-        ApiKeyAuth bearerToken = (ApiKeyAuth) apiClient.getAuthentication("BearerToken");
-        bearerToken.setApiKey(apiToken);
-        bearerToken.setApiKeyPrefix("Bearer");
-
-        apiClient.setSslCaCert(new ByteArrayInputStream(vertx.fileSystem().readFileBlocking(caUri).getBytes()));
-
-        // ApiClient client = Config.defaultClient();
-        this.coreV1Api = new CoreV1Api();
-        this.appsV1Api = new AppsV1Api();
-        this.namespace = namespace;
+        client = new DefaultKubernetesClient();
     }
 
     public List<Object> parseDocuments(final String yaml) {
@@ -82,91 +49,68 @@ public class K8sService {
 
     @SneakyThrows
     private Object parseDocumentToK8sModel(String doc) {
+
         if (isPod(doc)) {
-            return mapper.readValue(doc, V1Pod.class);
+            return mapper.readValue(doc, Pod.class);
         } else if (isDeployment(doc)) {
-            return mapper.readValue(doc, V1Deployment.class);
+            return mapper.readValue(doc, Deployment.class);
         } else if (isService(doc)) {
-            return mapper.readValue(doc, V1Service.class);
+            return mapper.readValue(doc, Service.class);
         } else if (isStatefulSet(doc)) {
-            return mapper.readValue(doc, V1StatefulSet.class);
+            return mapper.readValue(doc, StatefulSet.class);
         } else if (isConfigMap(doc)) {
-            return mapper.readValue(doc, V1ConfigMap.class);
-        } else {
-            log.warn("Unknow document kind: '{}'", doc);
-            return null;
+            return mapper.readValue(doc, ConfigMap.class);
         }
+
+        log.warn("Unknow document kind: '{}'", doc);
+        return doc;
+
     }
 
-    @SneakyThrows
-    private Boolean deploy(Object k8sDeployment) {
+    private void deploy(Object k8sDeployment) {
 
-        if (k8sDeployment instanceof V1Pod) {
-            coreV1Api.createNamespacedPod(namespace, (V1Pod) k8sDeployment, PRETTY);
-        } else if (k8sDeployment instanceof V1Deployment) {
-            appsV1Api.createNamespacedDeployment(namespace, (V1Deployment) k8sDeployment, PRETTY);
-        } else if (k8sDeployment instanceof V1Service) {
-            coreV1Api.createNamespacedService(namespace, (V1Service) k8sDeployment, PRETTY);
-        } else if (k8sDeployment instanceof V1StatefulSet) {
-            appsV1Api.createNamespacedStatefulSet(namespace, (V1StatefulSet) k8sDeployment, PRETTY);
-        } else if (k8sDeployment instanceof V1ConfigMap) {
-            coreV1Api.createNamespacedConfigMap(namespace, (V1ConfigMap) k8sDeployment, PRETTY);
+        if (k8sDeployment instanceof Pod) {
+            client.pods().createOrReplace((Pod) k8sDeployment);
+        } else if (k8sDeployment instanceof Deployment) {
+            client.apps().deployments().createOrReplace((Deployment) k8sDeployment);
+        } else if (k8sDeployment instanceof Service) {
+            client.services().createOrReplace((Service) k8sDeployment);
+        } else if (k8sDeployment instanceof StatefulSet) {
+            client.apps().statefulSets().createOrReplace((StatefulSet) k8sDeployment);
+        } else if (k8sDeployment instanceof ConfigMap) {
+            client.configMaps().createOrReplace((ConfigMap) k8sDeployment);
         } else {
-            log.warn(
-                    "Deployment unknown. Expected: [V1Pod, V1ConfigMap, V1StatefulSet, V1Deployment, V1Service], but found: {}",
-                    k8sDeployment);
-            return Boolean.FALSE;
+            client.load(toInputStream(k8sDeployment)).createOrReplace();
         }
 
-        return Boolean.TRUE;
     }
 
-    @SneakyThrows
-    private Boolean unDeploy(Object k8sDeployment) {
+    private void unDeploy(Object k8sDeployment) {
 
-        V1DeleteOptions deleteOptions = new V1DeleteOptions();
-
-        if (k8sDeployment instanceof V1Pod) {
-
-            V1Pod pod = (V1Pod) k8sDeployment;
-            coreV1Api.deleteNamespacedPod(pod.getMetadata().getName(), namespace, deleteOptions, PRETTY, null, null,
-                    null);
-
-        } else if (k8sDeployment instanceof V1Deployment) {
-
-            V1Deployment deployment = (V1Deployment) k8sDeployment;
-            appsV1Api.deleteNamespacedDeployment(deployment.getMetadata().getName(), namespace, deleteOptions, PRETTY,
-                    null, null, null);
-
-        } else if (k8sDeployment instanceof V1Service) {
-
-            V1Service service = (V1Service) k8sDeployment;
-            coreV1Api.deleteNamespacedService(service.getMetadata().getName(), namespace, deleteOptions, PRETTY, null,
-                    null, null);
-
-        } else if (k8sDeployment instanceof V1StatefulSet) {
-
-            V1StatefulSet statefulSet = (V1StatefulSet) k8sDeployment;
-            appsV1Api.deleteNamespacedStatefulSet(statefulSet.getMetadata().getName(), namespace, deleteOptions, PRETTY,
-                    null, null, null);
-
-        } else if (k8sDeployment instanceof V1ConfigMap) {
-
-            V1ConfigMap configMap = (V1ConfigMap) k8sDeployment;
-            coreV1Api.deleteNamespacedConfigMap(configMap.getMetadata().getName(), namespace, deleteOptions, PRETTY,
-                    null, null, null);
-
+        if (k8sDeployment instanceof Pod) {
+            client.pods().delete((Pod) k8sDeployment);
+        } else if (k8sDeployment instanceof Deployment) {
+            client.apps().deployments().delete((Deployment) k8sDeployment);
+        } else if (k8sDeployment instanceof Service) {
+            client.services().delete((Service) k8sDeployment);
+        } else if (k8sDeployment instanceof StatefulSet) {
+            client.apps().statefulSets().delete((StatefulSet) k8sDeployment);
+        } else if (k8sDeployment instanceof ConfigMap) {
+            client.configMaps().delete((ConfigMap) k8sDeployment);
         } else {
-
-            log.warn(
-                    "Deployment unknown. Expected: [V1Pod, V1ConfigMap, V1StatefulSet, V1Deployment, V1Service], but found: {}",
-                    k8sDeployment);
-            return Boolean.FALSE;
-
+            client.load(toInputStream(k8sDeployment)).delete();
         }
 
-        return Boolean.TRUE;
+    }
 
+    private InputStream toInputStream(Object k8sDeployment) {
+
+        if (k8sDeployment instanceof String) {
+            String value = (String) k8sDeployment;
+            return new ByteArrayInputStream(value.getBytes());
+        }
+
+        return null;
     }
 
     private boolean isService(String doc) {
@@ -196,32 +140,35 @@ public class K8sService {
 
         parseDocuments(yaml).stream().forEach(k8sObj -> {
 
-            if (k8sObj instanceof V1Pod) {
+            if (k8sObj instanceof Pod) {
 
-                Optional<V1Pod> pod = searchPodByName(((V1Pod) k8sObj).getMetadata().getName());
+                Pod pod = searchPodByName(((Pod) k8sObj).getMetadata().getName());
                 log.debug("Pod: {}", pod);
 
-            } else if (k8sObj instanceof V1Deployment) {
+            } else if (k8sObj instanceof Deployment) {
 
-                searchDeploymentByName(((V1Deployment) k8sObj).getMetadata().getName()).ifPresent(deploy -> {
-                    statusBuilder.ready(deploy.getStatus().getAvailableReplicas() >= 1);
-                    statusBuilder.image(deploy.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
-                });
+                Optional.ofNullable(searchDeploymentByName(((Deployment) k8sObj).getMetadata().getName()))
+                        .ifPresent(deploy -> {
+                            statusBuilder.ready(deploy.getStatus().getAvailableReplicas() >= 1);
+                            statusBuilder
+                                    .image(deploy.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+                        });
 
-            } else if (k8sObj instanceof V1Service) {
+            } else if (k8sObj instanceof Service) {
 
-                V1Service service = (V1Service) k8sObj;
-                searchServiceByName(service.getMetadata().getName()).ifPresent(remoteService -> {
+                Service service = (Service) k8sObj;
+                Optional.ofNullable(searchServiceByName(service.getMetadata().getName())).ifPresent(remoteService -> {
                     statusBuilder.ports(remoteService.getSpec().getPorts().stream()
                             .collect(Collectors.toMap(p -> p.getPort(), p -> p.getNodePort())));
 
                 });
 
-            } else if (k8sObj instanceof V1StatefulSet) {
+            } else if (k8sObj instanceof StatefulSet) {
 
-                searchStatefulSetByName(((V1StatefulSet) k8sObj).getMetadata().getName()).ifPresent(statefulSet -> {
-                    statusBuilder.ready(statefulSet.getStatus().getReadyReplicas() >= 1);
-                });
+                Optional.ofNullable(searchStatefulSetByName(((StatefulSet) k8sObj).getMetadata().getName()))
+                        .ifPresent(statefulSet -> {
+                            statusBuilder.ready(statefulSet.getStatus().getReadyReplicas() >= 1);
+                        });
 
             }
 
@@ -230,28 +177,20 @@ public class K8sService {
         return statusBuilder.build();
     }
 
-    @SneakyThrows()
-    private Optional<V1Pod> searchPodByName(String name) {
-        return coreV1Api.listNamespacedPod(namespace, PRETTY, null, null, true, null, null, null, TIMEOUT, null)
-                .getItems().stream().filter(p -> p.getMetadata().getName().equals(name)).findFirst();
+    private Pod searchPodByName(String name) {
+        return client.pods().withName(name).get();
     }
 
-    @SneakyThrows()
-    private Optional<V1Deployment> searchDeploymentByName(String name) {
-        return appsV1Api.listNamespacedDeployment(namespace, PRETTY, null, null, true, null, null, null, 3000, null)
-                .getItems().stream().filter(p -> p.getMetadata().getName().equals(name)).findFirst();
+    private Deployment searchDeploymentByName(String name) {
+        return client.apps().deployments().withName(name).get();
     }
 
-    @SneakyThrows()
-    private Optional<V1StatefulSet> searchStatefulSetByName(String name) {
-        return appsV1Api.listNamespacedStatefulSet(namespace, PRETTY, null, null, true, null, null, null, 3000, null)
-                .getItems().stream().filter(p -> p.getMetadata().getName().equals(name)).findFirst();
+    private StatefulSet searchStatefulSetByName(String name) {
+        return client.apps().statefulSets().withName(name).get();
     }
 
-    @SneakyThrows()
-    private Optional<V1Service> searchServiceByName(String name) {
-        return coreV1Api.listNamespacedService(namespace, PRETTY, null, null, true, null, null, null, 3000, null)
-                .getItems().stream().filter(p -> p.getMetadata().getName().equals(name)).findFirst();
+    private Service searchServiceByName(String name) {
+        return client.services().withName(name).get();
     }
 
 }
