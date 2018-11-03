@@ -1,4 +1,4 @@
-package sb001.miniturbo.vertex.k8s.service;
+package sb001.miniturbo.vertx.k8s.service;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -21,7 +21,7 @@ import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import sb001.miniturbo.vertex.k8s.service.dto.Status;
+import sb001.miniturbo.vertx.k8s.service.dto.Status;
 
 @Slf4j
 public class K8sService {

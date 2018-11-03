@@ -1,4 +1,4 @@
-package sb001.miniturbo.vertex.web;
+package sb001.miniturbo.vertx.web;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
@@ -6,8 +6,8 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.FaviconHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.servicediscovery.ServiceDiscovery;
-import sb001.vertex.VertexProxy;
-import sb001.vertex.VertexServer;
+import sb001.vertx.VertxHttpServer;
+import sb001.vertx.VertxProxy;
 
 public class TurboWebVerticle extends AbstractVerticle {
 
@@ -28,11 +28,10 @@ public class TurboWebVerticle extends AbstractVerticle {
 
         // proxy to miniturbo-api
         router.route("/api/*")
-                .handler(ctxt -> VertexProxy.serviceProxyUri(discovery, "miniturbo-api", ctxt.request(), "/api"));
+                .handler(ctxt -> VertxProxy.serviceProxyUri(discovery, "miniturbo-api", ctxt.request(), "/api"));
 
         // start server
-        VertexServer.startServer(vertx, "miniturbo-web", config().getInteger("web.http.port", SERVER_PORT), router,
-                startFuture);
+        VertxHttpServer.startServer(vertx, "miniturbo-web", SERVER_PORT, router, startFuture);
 
     }
 

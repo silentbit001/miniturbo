@@ -1,4 +1,4 @@
-package sb001.vertex;
+package sb001.vertx;
 
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
@@ -7,7 +7,7 @@ import io.vertx.servicediscovery.ServiceDiscovery;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class VertexProxy {
+public class VertxProxy {
 
     public static void proxyUri(HttpClient httpClient, HttpServerRequest request, String afterUri) {
         final String uri = request.uri().split(afterUri)[1];
@@ -16,13 +16,13 @@ public class VertexProxy {
 
     public static void serviceProxyUri(ServiceDiscovery discovery, String serviceName, HttpServerRequest request,
             String afterUri) {
-        VertexDiscovery.discoveryHttpClient(discovery, serviceName,
+        VertxDiscovery.discoveryHttpClient(discovery, serviceName,
                 httpClient -> proxyUri(httpClient, request, afterUri));
     }
 
     public static void serviceProxyTo(ServiceDiscovery discovery, String serviceName, HttpServerRequest request,
             String uri) {
-        VertexDiscovery.discoveryHttpClient(discovery, serviceName, httpClient -> proxyTo(httpClient, request, uri));
+        VertxDiscovery.discoveryHttpClient(discovery, serviceName, httpClient -> proxyTo(httpClient, request, uri));
     }
 
     public static void proxyTo(HttpClient httpClient, HttpServerRequest request, final String uri) {

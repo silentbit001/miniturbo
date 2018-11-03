@@ -1,4 +1,4 @@
-package sb001.miniturbo.vertex.k8s.service.dto;
+package sb001.miniturbo.vertx.k8s.service.dto;
 
 import java.util.Map;
 

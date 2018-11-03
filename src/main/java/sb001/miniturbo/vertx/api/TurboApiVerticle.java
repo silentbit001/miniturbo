@@ -1,4 +1,4 @@
-package sb001.miniturbo.vertex.api;
+package sb001.miniturbo.vertx.api;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
@@ -6,12 +6,10 @@ import io.vertx.ext.healthchecks.HealthCheckHandler;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.servicediscovery.ServiceDiscovery;
-import sb001.vertex.VertexProxy;
-import sb001.vertex.VertexServer;
+import sb001.vertx.VertxHttpServer;
+import sb001.vertx.VertxProxy;
 
 public class TurboApiVerticle extends AbstractVerticle {
-
-    public static final int SERVER_PORT = 8082;
 
     private ServiceDiscovery discovery;
 
@@ -33,14 +31,12 @@ public class TurboApiVerticle extends AbstractVerticle {
         });
 
         // start server
-        int port = config().getInteger("api.http.port", SERVER_PORT);
-        Boolean publishService = config().getBoolean("resource.service.publish", Boolean.TRUE);
-        VertexServer.startServer(vertx, "miniturbo-api", port, router, publishService ? discovery : null, startFuture);
+        VertxHttpServer.startServer(vertx, "miniturbo-api", router, discovery, startFuture);
 
     }
 
     private RoutingContext findAllResources(RoutingContext request) {
-        VertexProxy.serviceProxyTo(discovery, "miniturbo-resource", request.request(), "/");
+        VertxProxy.serviceProxyTo(discovery, "miniturbo-resource", request.request(), "/");
         return request;
     }
 
@@ -58,7 +54,7 @@ public class TurboApiVerticle extends AbstractVerticle {
 
     private RoutingContext statusResource(RoutingContext request) {
         String uri = String.format("/%s/status", request.pathParam("id"));
-        VertexProxy.serviceProxyTo(discovery, "miniturbo-k8s", request.request(), uri);
+        VertxProxy.serviceProxyTo(discovery, "miniturbo-k8s", request.request(), uri);
         return request;
     }
 

@@ -1,4 +1,4 @@
-package sb001.miniturbo.vertex.resource;
+package sb001.miniturbo.vertx.resource;
 
 import java.util.List;
 import java.util.regex.Matcher;
@@ -13,11 +13,10 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.servicediscovery.ServiceDiscovery;
-import sb001.vertex.VertexServer;
+import sb001.vertx.VertxHttpServer;
 
 public class TurboResourceVerticle extends AbstractVerticle {
 
-    public static final int SERVER_PORT = 8081;
     private Pattern deploymentPattern = Pattern.compile("(?<=/deployments/)(.*)(?=.yaml)");
 
     @Override
@@ -28,10 +27,7 @@ public class TurboResourceVerticle extends AbstractVerticle {
         router.get("/:id").handler(this::getById);
 
         // start server
-        int port = config().getInteger("resource.http.port", SERVER_PORT);
-        boolean publishService = config().getBoolean("resource.service.publish", Boolean.TRUE);
-        ServiceDiscovery discovery = publishService ? ServiceDiscovery.create(vertx) : null;
-        VertexServer.startServer(vertx, "miniturbo-resource", port, router, discovery, startFuture);
+        VertxHttpServer.startServer(vertx, "miniturbo-resource", router, ServiceDiscovery.create(vertx), startFuture);
 
     }
 
