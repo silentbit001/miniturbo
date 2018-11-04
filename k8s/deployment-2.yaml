@@ -1,0 +1,229 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: miniturbo-config
+  namespace: default
+data:
+  config.json: |
+    {
+       http: {
+          port: 8080
+       }
+       service: {
+          autopublish: false
+       }
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: miniturbo
+  labels:
+    app: miniturbo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: miniturbo
+  template:
+    metadata:
+      labels:
+        app: miniturbo
+    spec:
+      containers:
+      - name: miniturbo
+        image: silentbit001/miniturbo
+        env:
+        - name: VERTICLE_NAME
+          value: sb001.miniturbo.vertx.web.TurboWebVerticle
+        - name: VERTICLE_CONFIG
+          value: /config.json
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: config-volume
+          mountPath: /conf.json
+          subPath: config.json
+      volumes:
+      - name: config-volume
+        configMap:
+          name: miniturbo-config
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: miniturbo-resources
+  labels:
+    app: miniturbo-resources
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: miniturbo-resources
+  template:
+    metadata:
+      labels:
+        app: miniturbo-resources
+    spec:
+      containers:
+      - name: miniturbo
+        image: silentbit001/miniturbo
+        env:
+        - name: VERTICLE_NAME
+          value: sb001.miniturbo.vertx.resource.TurboResourceVerticle
+        - name: VERTICLE_CONFIG
+          value: /config.json
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: config-volume
+          mountPath: /conf.json
+          subPath: config.json
+      volumes:
+      - name: config-volume
+        configMap:
+          name: miniturbo-config
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: miniturbo-api
+  labels:
+    app: miniturbo-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: miniturbo-api
+  template:
+    metadata:
+      labels:
+        app: miniturbo-api
+    spec:
+      containers:
+      - name: miniturbo
+        image: silentbit001/miniturbo
+        env:
+        - name: VERTICLE_NAME
+          value: sb001.miniturbo.vertx.api.TurboApiVerticle
+        - name: VERTICLE_CONFIG
+          value: /config.json
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: config-volume
+          mountPath: /conf.json
+          subPath: config.json
+      volumes:
+      - name: config-volume
+        configMap:
+          name: miniturbo-config
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: miniturbo-k8s
+  labels:
+    app: miniturbo-k8s
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: miniturbo-k8s
+  template:
+    metadata:
+      labels:
+        app: miniturbo-k8s
+    spec:
+      containers:
+      - name: miniturbo
+        image: silentbit001/miniturbo
+        env:
+        - name: VERTICLE_NAME
+          value: sb001.miniturbo.vertx.k8s.TurboK8sVerticle
+        - name: VERTICLE_CONFIG
+          value: /config.json
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: config-volume
+          mountPath: /conf.json
+          subPath: config.json
+      volumes:
+      - name: config-volume
+        configMap:
+          name: miniturbo-config
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: miniturbo
+spec:
+  type: NodePort
+  selector:
+    app: miniturbo
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: miniturbo-resource
+spec:
+  type: NodePort
+  selector:
+    app: miniturbo-resource
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: miniturbo-api
+spec:
+  type: NodePort
+  selector:
+    app: miniturbo-api
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: miniturbo-k8s
+spec:
+  type: NodePort
+  selector:
+    app: miniturbo-k8s
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: fabric8-rbac
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io

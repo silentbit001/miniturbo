@@ -17,6 +17,7 @@ import sb001.vertx.VertxHttpServer;
 
 public class TurboResourceVerticle extends AbstractVerticle {
 
+    private static List<String> embeddedResources;
     private Pattern deploymentPattern = Pattern.compile("(?<=/deployments/)(.*)(?=.yaml)");
 
     @Override
@@ -36,7 +37,7 @@ public class TurboResourceVerticle extends AbstractVerticle {
         String fileName = String.format("deployments/%s.yaml", h.pathParam("id"));
         vertx.fileSystem().readFile(fileName, f -> {
             if (f.succeeded()) {
-                h.response().end(String.valueOf(f.result()));
+                h.response().setChunked(true).end(f.result());
             } else {
                 h.response().setStatusCode(404).end();
             }
@@ -47,20 +48,25 @@ public class TurboResourceVerticle extends AbstractVerticle {
 
     private RoutingContext findAll(RoutingContext h) {
 
-        vertx.fileSystem().readDir("deployments/", d -> {
+        if (embeddedResources != null) {
+            h.response().end(new JsonArray(embeddedResources).encodePrettily());
+        } else {
 
-            if (d.succeeded()) {
+            vertx.fileSystem().readDir("deployments/", d -> {
 
-                List<String> embeddedResources = d.result().stream().map(this::extractResourceNameFromFile)
-                        .filter(StringUtils::isNotBlank).collect(Collectors.toList());
+                if (d.succeeded()) {
 
-                h.response().end(new JsonArray(embeddedResources).encodePrettily());
+                    embeddedResources = d.result().stream().map(this::extractResourceNameFromFile)
+                            .filter(StringUtils::isNotBlank).collect(Collectors.toList());
 
-            } else {
-                h.response().setStatusCode(404).end();
-            }
+                    h.response().end(new JsonArray(embeddedResources).encodePrettily());
 
-        });
+                } else {
+                    h.response().setStatusCode(404).end();
+                }
+
+            });
+        }
 
         return h;
     }

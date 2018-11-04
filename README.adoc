@@ -17,8 +17,14 @@ Miniturbo allow you deploy basic resources in you minikube in minutes just with 
 
 == Building
 
+=== Compile and run tests
 ```
 ./mvnw clean intall
+```
+
+=== Start locally
+```
+./mvnw clean exec:java
 ```
 
 == Docker
@@ -42,7 +48,7 @@ or
 minikube start --memory 4096 --cpus 4
 ```
 
-===Deploying miniturbo
+=== Deploying miniturbo
 ```
 kubectl apply -f https://raw.githubusercontent.com/silentbit001/miniturbo/master/k8s/deployment.yaml
 ```

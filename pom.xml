@@ -22,7 +22,7 @@
 		<junit-platform-launcher.version>1.2.0</junit-platform-launcher.version>
 
 		<docker.image>silentbit001/miniturbo</docker.image>
-		<main.verticle>sb001.miniturbo.vertex.MiniTurboVerticle</main.verticle>
+		<main.verticle>sb001.miniturbo.vertx.MiniTurboVerticle</main.verticle>
 	</properties>
 
 	<dependencyManagement>
@@ -109,6 +109,12 @@
 			<artifactId>jackson-dataformat-yaml</artifactId>
 			<version>2.9.7</version>
 		</dependency>
+		<dependency>
+			<groupId>com.squareup.okhttp</groupId>
+			<artifactId>okhttp</artifactId>
+			<version>2.7.5</version>
+		</dependency>
+
 
 		<!-- test -->
 		<dependency>

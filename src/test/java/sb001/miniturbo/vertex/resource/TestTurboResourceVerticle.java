@@ -1,6 +1,8 @@
 package sb001.miniturbo.vertex.resource;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
@@ -9,10 +11,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.Timeout;
@@ -77,29 +80,10 @@ public class TestTurboResourceVerticle {
 
     }
 
-    @Test
-    @DisplayName("Should return resource by id")
-    @Timeout(value = TIMETOU_IN_SECONDS, timeUnit = TimeUnit.SECONDS)
-    void testGetResourcesById(Vertx vertx, VertxTestContext testContext) throws Throwable {
-
-        VertxHttpClient.get(discovery, "miniturbo-resource", "/redis", buffer -> testContext.verify(() -> {
-
-            String deployment = buffer.toString();
-            Assertions.assertTrue(StringUtils.isNotBlank(deployment));
-
-            String expectedResource = vertx.fileSystem().readFileBlocking("deployments/redis.yaml").toString();
-            Assertions.assertEquals(expectedResource, deployment);
-
-            testContext.completeNow();
-
-        }), response -> testContext.failed());
-
-    }
-
     @ParameterizedTest
-    @ValueSource(strings = { "redis", "cassandra", "vault", "consul", "elasticsearch", "turq", "nginx", "mongo" })
-    @DisplayName("Should return resource by id")
+    @DisplayName("Should return resource by id ")
     @Timeout(value = TIMETOU_IN_SECONDS, timeUnit = TimeUnit.SECONDS)
+    @MethodSource("getResources")
     void testGetResourcesByIdParameterized(String id, Vertx vertx, VertxTestContext testContext) throws Throwable {
 
         VertxHttpClient.get(discovery, "miniturbo-resource", String.format("/%s", id),
@@ -116,6 +100,17 @@ public class TestTurboResourceVerticle {
 
                 }), response -> testContext.failed());
 
+    }
+
+    static Stream<String> getResources() {
+
+        Optional<Buffer> resources = VertxHttpClient.getSync(discovery, "miniturbo-resource", "/");
+
+        if (!resources.isPresent()) {
+            throw new RuntimeException("Not found resources");
+        }
+
+        return resources.get().toJsonArray().stream().map(String::valueOf);
     }
 
 }
