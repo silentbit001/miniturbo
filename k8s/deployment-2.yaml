@@ -34,6 +34,7 @@ spec:
       containers:
       - name: miniturbo
         image: silentbit001/miniturbo
+        imagePullPolicy: Never
         env:
         - name: VERTICLE_NAME
           value: sb001.miniturbo.vertx.web.TurboWebVerticle
@@ -70,6 +71,7 @@ spec:
       containers:
       - name: miniturbo
         image: silentbit001/miniturbo
+        imagePullPolicy: Never
         env:
         - name: VERTICLE_NAME
           value: sb001.miniturbo.vertx.resource.TurboResourceVerticle
@@ -106,6 +108,7 @@ spec:
       containers:
       - name: miniturbo
         image: silentbit001/miniturbo
+        imagePullPolicy: Never
         env:
         - name: VERTICLE_NAME
           value: sb001.miniturbo.vertx.api.TurboApiVerticle
@@ -142,6 +145,7 @@ spec:
       containers:
       - name: miniturbo
         image: silentbit001/miniturbo
+        imagePullPolicy: Never
         env:
         - name: VERTICLE_NAME
           value: sb001.miniturbo.vertx.k8s.TurboK8sVerticle

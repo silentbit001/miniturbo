@@ -21,36 +21,48 @@ public class VertxHttpServer {
     private static final String DEFAULT_HOSTNAME = "localhost";
     private static String hostName;
 
-    public static void startServer(Vertx vertx, String serverName, int port, Router router,
+    public static HttpServer startServer(HttpServer server, String serverName, int port, Router router,
             Handler<AsyncResult<HttpServer>> listenHandler) {
-        vertx.createHttpServer().requestHandler(router::accept).listen(port, listenHandler);
+        return server.requestHandler(router::accept).listen(port, listenHandler);
     }
 
-    public static void startServer(Vertx vertx, String serverName, int port, Router router, Future<Void> startFuture) {
-        startServer(vertx, serverName, port, router,
+    public static HttpServer startServer(HttpServer server, String serverName, int port, Router router,
+            Future<Void> startFuture) {
+        return startServer(server, serverName, port, router,
                 listenerHandler(serverName, DEFAULT_HOSTNAME, port, startFuture, null, null));
     }
 
-    public static void startServer(Vertx vertx, String serverName, int port, Router router, ServiceDiscovery discovery,
+    public static HttpServer startServer(Vertx vertx, String serverName, int port, Router router,
+            Handler<AsyncResult<HttpServer>> listenHandler) {
+        return vertx.createHttpServer().requestHandler(router::accept).listen(port, listenHandler);
+    }
+
+    public static HttpServer startServer(Vertx vertx, String serverName, int port, Router router,
             Future<Void> startFuture) {
-        startServer(vertx, serverName, getHostName(), port, router, discovery, startFuture);
+        return startServer(vertx, serverName, port, router,
+                listenerHandler(serverName, DEFAULT_HOSTNAME, port, startFuture, null, null));
     }
 
-    public static void startServer(Vertx vertx, String serverName, Router router, Future<Void> startFuture) {
-        startServer(vertx, serverName, router, null, startFuture);
+    public static HttpServer startServer(Vertx vertx, String serverName, int port, Router router,
+            ServiceDiscovery discovery, Future<Void> startFuture) {
+        return startServer(vertx, serverName, getHostName(), port, router, discovery, startFuture);
     }
 
-    public static void startServer(Vertx vertx, String serverName, Router router, ServiceDiscovery discovery,
+    public static HttpServer startServer(Vertx vertx, String serverName, Router router, Future<Void> startFuture) {
+        return startServer(vertx, serverName, router, null, startFuture);
+    }
+
+    public static HttpServer startServer(Vertx vertx, String serverName, Router router, ServiceDiscovery discovery,
             Future<Void> startFuture) {
         int port = config(vertx).getInteger("http.port", pickUpRandomPort());
-        startServer(vertx, serverName, getHostName(), port, router, discovery, startFuture);
+        return startServer(vertx, serverName, getHostName(), port, router, discovery, startFuture);
     }
 
-    public static void startServer(Vertx vertx, String serverName, String host, int port, Router router,
+    public static HttpServer startServer(Vertx vertx, String serverName, String host, int port, Router router,
             ServiceDiscovery discovery, Future<Void> startFuture) {
 
         boolean serviceAutoPublish = config(vertx).getBoolean("service.autopublish", Boolean.TRUE);
-        startServer(vertx, serverName, port, router, listenerHandler(serverName, host, port, startFuture, s -> {
+        return startServer(vertx, serverName, port, router, listenerHandler(serverName, host, port, startFuture, s -> {
             if (discovery != null && serviceAutoPublish) {
                 VertxDiscovery.publishHttpService(discovery, serverName, host, port, "/", startFuture);
             } else {
