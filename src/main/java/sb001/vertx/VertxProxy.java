@@ -20,6 +20,10 @@ public class VertxProxy {
                 httpClient -> proxyUri(httpClient, request, afterUri));
     }
 
+    public static void serviceProxyTo(ServiceDiscovery discovery, String serviceName, HttpServerRequest request) {
+        serviceProxyTo(discovery, serviceName, request, "/");
+    }
+
     public static void serviceProxyTo(ServiceDiscovery discovery, String serviceName, HttpServerRequest request,
             String uri) {
         VertxDiscovery.discoveryHttpClient(discovery, serviceName, httpClient -> proxyTo(httpClient, request, uri));

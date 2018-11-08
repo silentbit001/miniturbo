@@ -1,6 +1,5 @@
 package sb001.miniturbo.vertex.resource;
 
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -15,7 +14,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.Timeout;
@@ -23,7 +21,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import sb001.miniturbo.vertx.resource.TurboResourceVerticle;
-import sb001.vertx.VertxHttpClient;
+import sb001.miniturbo.vertx.resource.client.TurboResourceClient;
 
 @DisplayName("TurboResourceVerticle")
 @ExtendWith(VertxExtension.class)
@@ -68,15 +66,11 @@ public class TestTurboResourceVerticle {
     @Timeout(value = TIMETOU_IN_SECONDS, timeUnit = TimeUnit.SECONDS)
     void testGetAllResourcesByServiceDiscovery(Vertx vertx, VertxTestContext testContext) throws Throwable {
 
-        VertxHttpClient.get(discovery, "miniturbo-resource", "/", buffer -> testContext.verify(() -> {
-
-            JsonArray resources = buffer.toJsonArray();
+        TurboResourceClient.getAllResources(discovery, resources -> testContext.verify(() -> {
             Assertions.assertTrue(resources.contains("redis"));
             Assertions.assertTrue(resources.contains("cassandra"));
-
             testContext.completeNow();
-
-        }), response -> testContext.failed());
+        }));
 
     }
 
@@ -86,31 +80,22 @@ public class TestTurboResourceVerticle {
     @MethodSource("getResources")
     void testGetResourcesByIdParameterized(String id, Vertx vertx, VertxTestContext testContext) throws Throwable {
 
-        VertxHttpClient.get(discovery, "miniturbo-resource", String.format("/%s", id),
-                buffer -> testContext.verify(() -> {
+        TurboResourceClient.getResourceById(discovery, id, resource -> testContext.verify(() -> {
 
-                    String deployment = buffer.toString();
-                    Assertions.assertTrue(StringUtils.isNotBlank(deployment));
+            Assertions.assertTrue(StringUtils.isNotBlank(resource));
 
-                    String expectedResource = vertx.fileSystem()
-                            .readFileBlocking(String.format("deployments/%s.yaml", id)).toString();
-                    Assertions.assertEquals(expectedResource, deployment);
+            String expectedResource = vertx.fileSystem().readFileBlocking(String.format("deployments/%s.yaml", id))
+                    .toString();
+            Assertions.assertEquals(expectedResource, resource);
 
-                    testContext.completeNow();
+            testContext.completeNow();
 
-                }), response -> testContext.failed());
+        }));
 
     }
 
     static Stream<String> getResources() {
-
-        Optional<Buffer> resources = VertxHttpClient.getSync(discovery, "miniturbo-resource", "/");
-
-        if (!resources.isPresent()) {
-            throw new RuntimeException("Not found resources");
-        }
-
-        return resources.get().toJsonArray().stream().map(String::valueOf);
+        return TurboResourceClient.getAllResources(discovery).stream();
     }
 
 }

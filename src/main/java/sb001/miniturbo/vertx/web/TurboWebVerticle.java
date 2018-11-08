@@ -10,6 +10,7 @@ import io.vertx.ext.web.handler.FaviconHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import lombok.extern.slf4j.Slf4j;
+import sb001.vertx.VertxEvent;
 import sb001.vertx.VertxHttpServer;
 import sb001.vertx.VertxProxy;
 
@@ -41,7 +42,7 @@ public class TurboWebVerticle extends AbstractVerticle {
         httpServer.websocketHandler(ws -> {
             if (ws.path().equals("/status")) {
                 log.debug("Ws connected! {}", ws.localAddress());
-                vertx.eventBus().consumer("miniturbo:update_status", h -> {
+                VertxEvent.consumer(vertx, "update_status", h -> {
                     if (h.body() instanceof JsonObject) {
                         JsonObject json = (JsonObject) h.body();
                         ws.writeTextMessage(json.encodePrettily());
