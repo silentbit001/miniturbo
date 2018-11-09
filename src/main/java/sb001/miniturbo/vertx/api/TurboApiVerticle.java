@@ -7,10 +7,10 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import sb001.miniturbo.vertx.api.dto.Status;
+import sb001.miniturbo.vertx.k8s.client.TurboK8sClient;
 import sb001.miniturbo.vertx.resource.client.TurboResourceClient;
 import sb001.vertx.VertxEvent;
 import sb001.vertx.VertxHttpServer;
-import sb001.vertx.VertxProxy;
 import sb001.vertx.VertxSharedData;
 
 public class TurboApiVerticle extends AbstractVerticle {
@@ -78,8 +78,7 @@ public class TurboApiVerticle extends AbstractVerticle {
     }
 
     private RoutingContext statusResource(RoutingContext request) {
-        String uri = String.format("/%s/status", request.pathParam("id"));
-        VertxProxy.serviceProxyTo(discovery, "miniturbo-k8s", request.request(), uri);
+        TurboK8sClient.getStatusProxy(discovery, request.pathParam("id"), request.request());
         return request;
     }
 

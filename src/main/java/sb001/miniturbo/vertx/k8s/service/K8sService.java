@@ -21,7 +21,7 @@ import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import sb001.miniturbo.vertx.k8s.service.dto.Status;
+import sb001.miniturbo.vertx.k8s.service.dto.DeploymentStatus;
 
 @Slf4j
 public class K8sService {
@@ -133,9 +133,9 @@ public class K8sService {
         return StringUtils.contains(doc, "kind: ConfigMap");
     }
 
-    public Status status(String yaml) {
+    public DeploymentStatus status(String yaml) {
 
-        Status.StatusBuilder statusBuilder = Status.builder();
+        DeploymentStatus.DeploymentStatusBuilder statusBuilder = DeploymentStatus.builder();
         statusBuilder.ready(Boolean.FALSE);
 
         parseDocuments(yaml).stream().forEach(k8sObj -> {

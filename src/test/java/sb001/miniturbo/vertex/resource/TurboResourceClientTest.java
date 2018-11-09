@@ -14,8 +14,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -25,40 +23,20 @@ import sb001.miniturbo.vertx.resource.client.TurboResourceClient;
 
 @DisplayName("TurboResourceVerticle")
 @ExtendWith(VertxExtension.class)
-public class TestTurboResourceVerticle {
+public class TurboResourceClientTest {
 
-    int port = 8081;
     static ServiceDiscovery discovery;
 
     static final int TIMETOU_IN_SECONDS = 3;
 
     @BeforeAll
-    @DisplayName("Should start a Web Server on port 8081")
+    @DisplayName("Should start a Web Server")
     static void deploy_verticle(Vertx vertx, VertxTestContext testContext) {
 
-        DeploymentOptions options = new DeploymentOptions().setConfig(new JsonObject().put("http.port", 8081));
-
-        vertx.deployVerticle(new TurboResourceVerticle(), options,
+        vertx.deployVerticle(new TurboResourceVerticle(), new DeploymentOptions(),
                 testContext.succeeding(id -> testContext.completeNow()));
 
         discovery = ServiceDiscovery.create(vertx);
-    }
-
-    @Test
-    @DisplayName("Should return some resources like redis and cassandra")
-    @Timeout(value = TIMETOU_IN_SECONDS, timeUnit = TimeUnit.SECONDS)
-    void testGetAllResources(Vertx vertx, VertxTestContext testContext) throws Throwable {
-        vertx.createHttpClient().getNow(port, "localhost", "/", response -> testContext.verify(() -> {
-            Assertions.assertTrue(response.statusCode() == 200);
-            response.handler(body -> {
-
-                JsonArray resources = body.toJsonArray();
-                Assertions.assertTrue(resources.contains("redis"));
-                Assertions.assertTrue(resources.contains("cassandra"));
-
-                testContext.completeNow();
-            });
-        }));
     }
 
     @Test

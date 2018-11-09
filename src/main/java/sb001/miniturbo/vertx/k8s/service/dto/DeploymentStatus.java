@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class Status {
+public class DeploymentStatus {
 
     private Map<Integer, Integer> ports;
     private String image;

@@ -7,7 +7,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import lombok.extern.slf4j.Slf4j;
 import sb001.miniturbo.vertx.k8s.service.K8sService;
-import sb001.miniturbo.vertx.k8s.service.dto.Status;
+import sb001.miniturbo.vertx.k8s.service.dto.DeploymentStatus;
 import sb001.miniturbo.vertx.resource.client.TurboResourceClient;
 import sb001.vertx.VertxEvent;
 import sb001.vertx.VertxHttpServer;
@@ -31,7 +31,7 @@ public class TurboK8sVerticle extends AbstractVerticle {
             log.info("Status k8s resource '{}'....", resourceId);
 
             TurboResourceClient.getResourceById(discovery, resourceId, resource -> {
-                Status status = k8sService.status(resource);
+                DeploymentStatus status = k8sService.status(resource);
                 request.response().end(Json.encodePrettily(status));
             }, failed -> request.response().setStatusCode(500).end());
 

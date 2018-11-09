@@ -10,9 +10,9 @@ import io.vertx.ext.web.handler.FaviconHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import lombok.extern.slf4j.Slf4j;
+import sb001.miniturbo.vertx.api.client.TurboApiClient;
 import sb001.vertx.VertxEvent;
 import sb001.vertx.VertxHttpServer;
-import sb001.vertx.VertxProxy;
 
 @Slf4j
 public class TurboWebVerticle extends AbstractVerticle {
@@ -35,8 +35,7 @@ public class TurboWebVerticle extends AbstractVerticle {
         router.get("/health").handler(HealthCheckHandler.create(vertx));
 
         // proxy to miniturbo-api
-        router.route("/api/*")
-                .handler(ctxt -> VertxProxy.serviceProxyUri(discovery, "miniturbo-api", ctxt.request(), "/api"));
+        router.route("/api/*").handler(ctxt -> TurboApiClient.proxy(discovery, ctxt.request()));
 
         // create ws for status
         httpServer.websocketHandler(ws -> {
