@@ -38,13 +38,13 @@ public class TurboK8sVerticle extends AbstractVerticle {
         });
 
         VertxEvent.consumer(vertx, "start_resource", handler -> {
-            String id = String.valueOf(handler.body());
-            TurboResourceClient.getResourceById(discovery, id, resource -> k8sService.deployYamlDocuments(resource));
+            TurboResourceClient.getResourceById(discovery, handler.getString("id"),
+                    resource -> k8sService.deployYamlDocuments(resource));
         });
 
         VertxEvent.consumer(vertx, "stop_resource", handler -> {
-            String id = String.valueOf(handler.body());
-            TurboResourceClient.getResourceById(discovery, id, resource -> k8sService.unDeployYamlDocuments(resource));
+            TurboResourceClient.getResourceById(discovery, handler.getString("id"),
+                    resource -> k8sService.unDeployYamlDocuments(resource));
         });
 
         // start server

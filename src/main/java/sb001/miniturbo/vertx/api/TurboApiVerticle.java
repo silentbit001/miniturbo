@@ -2,6 +2,7 @@ package sb001.miniturbo.vertx.api;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.healthchecks.HealthCheckHandler;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -46,7 +47,7 @@ public class TurboApiVerticle extends AbstractVerticle {
                 if (list == null || !resources.equals(list)) {
 
                     // notify changed resources
-                    VertxEvent.send(vertx, "update_status", Status.builder().resources(resources).build().toJson());
+                    VertxEvent.publish(vertx, "update_status", Status.builder().resources(resources).build().toJson());
 
                     // update shared list
                     VertxSharedData.putToSharedMap(vertx.sharedData(), "miniturbo", "resource_list", resources);
@@ -66,13 +67,13 @@ public class TurboApiVerticle extends AbstractVerticle {
     }
 
     private RoutingContext startResource(RoutingContext requestHandler) {
-        VertxEvent.send(vertx, "start_resource", requestHandler.pathParam("id"));
+        VertxEvent.publish(vertx, "start_resource", new JsonObject().put("id", requestHandler.pathParam("id")));
         requestHandler.response().setStatusCode(202).end();
         return requestHandler;
     }
 
     private RoutingContext stopResource(RoutingContext requestHandler) {
-        VertxEvent.send(vertx, "stop_resource", requestHandler.pathParam("id"));
+        VertxEvent.publish(vertx, "stop_resource", new JsonObject().put("id", requestHandler.pathParam("id")));
         requestHandler.response().setStatusCode(202).end();
         return requestHandler;
     }

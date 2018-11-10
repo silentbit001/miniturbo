@@ -3,7 +3,6 @@ package sb001.miniturbo.vertx.web;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServer;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.healthchecks.HealthCheckHandler;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.FaviconHandler;
@@ -40,13 +39,12 @@ public class TurboWebVerticle extends AbstractVerticle {
         // create ws for status
         httpServer.websocketHandler(ws -> {
             if (ws.path().equals("/status")) {
+
                 log.debug("Ws connected! {}", ws.localAddress());
                 VertxEvent.consumer(vertx, "update_status", h -> {
-                    if (h.body() instanceof JsonObject) {
-                        JsonObject json = (JsonObject) h.body();
-                        ws.writeTextMessage(json.encodePrettily());
-                    }
+                    ws.writeTextMessage(h.encodePrettily());
                 });
+
             } else {
                 log.debug("Ws connection rejected! {}", ws.localAddress());
                 ws.reject();

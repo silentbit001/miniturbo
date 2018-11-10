@@ -27,7 +27,7 @@ public class TurboResourceClientTest {
 
     static ServiceDiscovery discovery;
 
-    static final int TIMETOU_IN_SECONDS = 3;
+    static final int TIMEOUT_IN_SECONDS = 3;
 
     @BeforeAll
     @DisplayName("Should start a Web Server")
@@ -41,7 +41,7 @@ public class TurboResourceClientTest {
 
     @Test
     @DisplayName("Should return some resources by service discovery")
-    @Timeout(value = TIMETOU_IN_SECONDS, timeUnit = TimeUnit.SECONDS)
+    @Timeout(value = TIMEOUT_IN_SECONDS, timeUnit = TimeUnit.SECONDS)
     void testGetAllResourcesByServiceDiscovery(Vertx vertx, VertxTestContext testContext) throws Throwable {
 
         TurboResourceClient.getAllResources(discovery, resources -> testContext.verify(() -> {
@@ -54,7 +54,7 @@ public class TurboResourceClientTest {
 
     @ParameterizedTest
     @DisplayName("Should return resource by id ")
-    @Timeout(value = TIMETOU_IN_SECONDS, timeUnit = TimeUnit.SECONDS)
+    @Timeout(value = TIMEOUT_IN_SECONDS, timeUnit = TimeUnit.SECONDS)
     @MethodSource("getResources")
     void testGetResourcesByIdParameterized(String id, Vertx vertx, VertxTestContext testContext) throws Throwable {
 

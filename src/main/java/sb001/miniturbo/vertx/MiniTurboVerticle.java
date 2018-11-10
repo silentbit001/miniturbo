@@ -13,10 +13,13 @@ public class MiniTurboVerticle extends AbstractVerticle {
 
     @Override
     public void start(Future<Void> startFuture) throws Exception {
-        vertx.deployVerticle(TurboResourceVerticle.class, new DeploymentOptions());
-        vertx.deployVerticle(TurboApiVerticle.class, new DeploymentOptions());
-        vertx.deployVerticle(TurboK8sVerticle.class, new DeploymentOptions());
-        vertx.deployVerticle(TurboWebVerticle.class, new DeploymentOptions(), h -> {
+
+        DeploymentOptions options = new DeploymentOptions();
+
+        vertx.deployVerticle(TurboResourceVerticle.class, options);
+        vertx.deployVerticle(TurboApiVerticle.class, options);
+        vertx.deployVerticle(TurboK8sVerticle.class, options);
+        vertx.deployVerticle(TurboWebVerticle.class, options, h -> {
             if (h.succeeded()) {
                 startFuture.complete();
             } else {
