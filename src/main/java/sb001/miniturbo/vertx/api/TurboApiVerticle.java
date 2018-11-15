@@ -2,7 +2,6 @@ package sb001.miniturbo.vertx.api;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.healthchecks.HealthCheckHandler;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -10,8 +9,8 @@ import io.vertx.servicediscovery.ServiceDiscovery;
 import sb001.miniturbo.vertx.api.dto.Status;
 import sb001.miniturbo.vertx.k8s.client.TurboK8sClient;
 import sb001.miniturbo.vertx.resource.client.TurboResourceClient;
-import sb001.vertx.VertxEvent;
 import sb001.vertx.VertxHttpServer;
+import sb001.vertx.VertxRedisEvent;
 import sb001.vertx.VertxSharedData;
 
 public class TurboApiVerticle extends AbstractVerticle {
@@ -31,7 +30,7 @@ public class TurboApiVerticle extends AbstractVerticle {
         router.post("/resource/:id/start").handler(this::startResource);
         router.post("/resource/:id/stop").handler(this::stopResource);
         router.get("/resource/:id/status").handler(this::statusResource);
-        router.get("/job").handler(this::job);
+        router.get("/resource/status").handler(this::status);
         router.get("/health").handler(HealthCheckHandler.create(vertx));
 
         // start server
@@ -39,7 +38,12 @@ public class TurboApiVerticle extends AbstractVerticle {
 
     }
 
-    private RoutingContext job(RoutingContext request) {
+    private RoutingContext status(RoutingContext request) {
+        
+        
+        // get from cache
+        
+        
 
         TurboResourceClient.getAllResources(discovery, resources -> {
 
@@ -47,7 +51,8 @@ public class TurboApiVerticle extends AbstractVerticle {
                 if (list == null || !resources.equals(list)) {
 
                     // notify changed resources
-                    VertxEvent.publish(vertx, "update_status", Status.builder().resources(resources).build().toJson());
+                    VertxRedisEvent.publish(vertx, "update_status",
+                            Status.builder().resources(resources).build().toJson());
 
                     // update shared list
                     VertxSharedData.putToSharedMap(vertx.sharedData(), "miniturbo", "resource_list", resources);
@@ -67,13 +72,13 @@ public class TurboApiVerticle extends AbstractVerticle {
     }
 
     private RoutingContext startResource(RoutingContext requestHandler) {
-        VertxEvent.publish(vertx, "start_resource", new JsonObject().put("id", requestHandler.pathParam("id")));
+        TurboK8sClient.start(discovery, requestHandler.pathParam("id"));
         requestHandler.response().setStatusCode(202).end();
         return requestHandler;
     }
 
     private RoutingContext stopResource(RoutingContext requestHandler) {
-        VertxEvent.publish(vertx, "stop_resource", new JsonObject().put("id", requestHandler.pathParam("id")));
+        TurboK8sClient.stop(discovery, requestHandler.pathParam("id"));
         requestHandler.response().setStatusCode(202).end();
         return requestHandler;
     }

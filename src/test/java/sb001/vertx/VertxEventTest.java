@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -17,9 +18,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Router;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -35,12 +34,13 @@ public class VertxEventTest {
 
     static ServiceDiscovery discovery;
 
-    static final int TIMEOUT_IN_SECONDS = 5;
+    static final int TIMEOUT_IN_SECONDS = 20;
 
     static Process redisDocker;
 
     @BeforeAll
     @SneakyThrows
+    @DisplayName("Given I have a redis running")
     static void beforeAll(Vertx vertx, VertxTestContext testContext) {
 
         // start redis
@@ -48,91 +48,71 @@ public class VertxEventTest {
         BufferedReader in = new BufferedReader(new InputStreamReader(redisDocker.getInputStream()));
         String line;
         while ((line = in.readLine()) != null) {
-            System.out.println(line);
+            System.out.println("[redis] " + line);
             if (line.contains("Ready to accept connections")) {
                 break;
             }
         }
 
-        discovery = ServiceDiscovery.create(vertx);
-
-        DeploymentOptions options = new DeploymentOptions().setConfig(new JsonObject().put("redis.enabled", true));
-
-        vertx.deployVerticle(new MyVerticle("my-event-1"), options,
-                testContext.succeeding(id -> testContext.completeNow()));
-        vertx.deployVerticle(new MyVerticle("my-event-2"), options,
-                testContext.succeeding(id -> testContext.completeNow()));
-    }
-
-    @AfterAll
-    @SneakyThrows
-    static void afterAll(Vertx vertx, VertxTestContext testContext) {
-        redisDocker.destroy();
         testContext.completeNow();
+
     }
 
     @Test
     @SneakyThrows
-    @DisplayName("Should publish message for all consumers")
     @Timeout(value = TIMEOUT_IN_SECONDS, timeUnit = TimeUnit.SECONDS)
-    void publishMessageTest(Vertx vertx, VertxTestContext testContext) {
+    @DisplayName("Should publish and consume message from redis")
+    public void shouldPublishAndConsumeMessages(Vertx vertx, VertxTestContext testContext) {
 
-        AtomicInteger counter = new AtomicInteger(0);
+        DeploymentOptions options = new DeploymentOptions().setConfig(new JsonObject().put("redis.enabled", true));
 
-        Action1<Buffer> consumerCallback = h -> testContext.verify(() -> {
-            Assertions.assertEquals("1", h.toString());
-            counter.addAndGet(Integer.valueOf(h.toString()));
-        });
+        Future<Integer> counterFut = Future.future();
+        AtomicInteger aggregate = new AtomicInteger(0);
 
-        VertxHttpClient.get(discovery, "my-event-1", "/consume", consumerCallback);
-        VertxHttpClient.get(discovery, "my-event-2", "/consume", consumerCallback);
+        Action1<JsonObject> mHandler = message -> {
+            log.debug("Got message {}", message);
+            int count = aggregate.addAndGet(message.getInteger("value"));
+            log.debug("Count {}", count);
+            if (count >= 3) {
+                counterFut.complete(count);
+            }
+        };
 
-        // TODO: please make it more reliable
-        Strand.sleep(2000); // wait consumer be ready
-        VertxHttpClient.get(discovery, "my-event-1", "/publish"); // publish message
+        // deploy three verticles with one redis consumers each
+        Stream.of(1, 2, 3).parallel().forEach(i -> vertx.deployVerticle(new AbstractVerticle() {
+            @Override
+            public void start(Future<Void> startFuture) throws Exception {
+                VertxRedisEvent.consumer(vertx, "event1", mHandler);
+                startFuture.complete();
+            }
+        }, options));
 
-        // wait
-        // messages to
-        // be consumed
-        // TODO: remove sync by sleep
-        long startAt = System.currentTimeMillis();
-        while (counter.get() != 2 && System.currentTimeMillis() - startAt < 3000) {
-            Strand.sleep(100);
-        }
+        // deploy verticle with just redis publishers
+        Strand.sleep(7000);
+        vertx.deployVerticle(new AbstractVerticle() {
 
-        Assertions.assertEquals(2, counter.get());
+            @Override
+            public void start(Future<Void> startFuture) throws Exception {
+                VertxRedisEvent.publish(vertx, "event1", new JsonObject().put("value", 1));
+                VertxRedisEvent.publish(vertx, "event2", new JsonObject().put("value", 2));
+                startFuture.complete();
+                log.debug("Messages published.");
+            }
+
+        }, options);
+
+        Assertions.assertEquals(Integer.valueOf(3), Futures.getResult(counterFut, 7000));
         testContext.completeNow();
 
     }
 
-    static class MyVerticle extends AbstractVerticle {
-
-        private String name;
-
-        public MyVerticle(String serviceName) {
-            this.name = serviceName;
-        }
-
-        @Override
-        public void start(Future<Void> startFuture) throws Exception {
-
-            Router router = Router.router(vertx);
-            router.get("/publish").handler(h -> {
-                VertxEvent.publish(vertx, "event1", new JsonObject().put("name", "event1").put("value", 1));
-                h.response().end();
-            });
-
-            router.get("/consume").handler(h -> {
-                VertxEvent.consumer(vertx, "event1", ch -> {
-                    String value = ch.getInteger("value").toString();
-                    h.response().end(value);
-                });
-            });
-
-            VertxHttpServer.startServer(vertx, this.name, router, discovery, startFuture);
-
-        }
-
+    @AfterAll
+    @SneakyThrows
+    @DisplayName("After all I should stop redis")
+    @Timeout(value = TIMEOUT_IN_SECONDS, timeUnit = TimeUnit.SECONDS)
+    static void afterAll(Vertx vertx, VertxTestContext testContext) {
+        redisDocker.destroy();
+        testContext.completeNow();
     }
 
 }

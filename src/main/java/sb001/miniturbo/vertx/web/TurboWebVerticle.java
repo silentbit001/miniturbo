@@ -10,7 +10,7 @@ import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import lombok.extern.slf4j.Slf4j;
 import sb001.miniturbo.vertx.api.client.TurboApiClient;
-import sb001.vertx.VertxEvent;
+import sb001.vertx.VertxRedisEvent;
 import sb001.vertx.VertxHttpServer;
 
 @Slf4j
@@ -41,7 +41,7 @@ public class TurboWebVerticle extends AbstractVerticle {
             if (ws.path().equals("/status")) {
 
                 log.debug("Ws connected! {}", ws.localAddress());
-                VertxEvent.consumer(vertx, "update_status", h -> {
+                VertxRedisEvent.consumer(vertx, "update_status", h -> {
                     ws.writeTextMessage(h.encodePrettily());
                 });
 

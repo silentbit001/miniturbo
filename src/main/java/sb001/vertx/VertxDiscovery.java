@@ -1,11 +1,9 @@
 package sb001.vertx;
 
-import java.util.Objects;
-
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClient;
-import io.vertx.rx.java.ObservableFuture;
-import io.vertx.rx.java.RxHelper;
+import io.vertx.core.json.JsonObject;
+import io.vertx.reactivex.servicediscovery.types.RedisDataSource;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import io.vertx.servicediscovery.types.HttpEndpoint;
@@ -17,31 +15,59 @@ public class VertxDiscovery {
 
     public static void discoveryHttpClient(ServiceDiscovery discovery, String serviceName,
             Action1<HttpClient> callback) {
+        discoveryHttpClient(discovery, serviceName, callback, null);
+    }
+
+    public static void discoveryHttpClient(ServiceDiscovery discovery, String serviceName, Action1<HttpClient> callback,
+            Action1<Throwable> fail) {
 
         // TODO: we need to handle timeout and resource not found
+        discovery.getRecord(record -> record.getName().equals(serviceName), h -> {
 
-        ObservableFuture<Record> discoveryObservable = RxHelper.observableFuture();
+            if (h.succeeded() && h.result() != null) {
 
-        discoveryObservable.filter(Objects::nonNull).map(record -> discovery.getReference(record))
-                .map(reference -> reference.getAs(HttpClient.class)).subscribe(callback);
+                try {
 
-        discovery.getRecord(r -> r.getName().equals(serviceName), discoveryObservable.toHandler());
+                    HttpClient httpClient = discovery.getReference(h.result()).getAs(HttpClient.class);
+                    callback.call(httpClient);
+
+                } catch (Exception e) {
+                    if (fail != null) {
+                        fail.call(e);
+                    }
+                }
+
+            } else if (fail != null) {
+                fail.call(new RuntimeException("Service not found"));
+            }
+
+        });
 
     }
 
     public static void publishHttpService(ServiceDiscovery discovery, String serviceName, String host, int port,
             String path, Future<Void> startFuture) {
-        discovery.publish(HttpEndpoint.createRecord(serviceName, host, port, path), h -> {
+        publishService(discovery, HttpEndpoint.createRecord(serviceName, host, port, path), startFuture);
+    }
+
+    public static void publishRedisService(ServiceDiscovery discovery, String serviceName, String host, int port,
+            Future<Void> startFuture) {
+        publishService(discovery, RedisDataSource.createRecord(serviceName,
+                new JsonObject().put("url", host).put("port", port), new JsonObject()), startFuture);
+    }
+
+    public static void publishService(ServiceDiscovery discovery, Record record, Future<Void> startFuture) {
+        discovery.publish(record, h -> {
             if (h.succeeded()) {
                 if (startFuture != null) {
                     startFuture.complete();
                 }
-                log.info("Service {} published", serviceName);
+                log.info("Service {} published", record.getName());
             } else {
                 if (startFuture != null) {
                     startFuture.fail(h.cause());
                 }
-                log.error("Failed to publish service {}", serviceName, h.cause());
+                log.error("Failed to publish service {}", record.getName(), h.cause());
             }
         });
     }

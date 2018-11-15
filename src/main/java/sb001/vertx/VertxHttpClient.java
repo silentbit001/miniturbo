@@ -2,17 +2,14 @@ package sb001.vertx;
 
 import java.util.Optional;
 
-import co.paralleluniverse.strands.Strand;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import rx.functions.Action1;
 
-@Slf4j
 public class VertxHttpClient {
 
     private static final int DEFAULT_SYNC_TIMEOUT_IN_MILLIS = 3000;
@@ -55,13 +52,7 @@ public class VertxHttpClient {
 
     public static void get(HttpClient httpClient, String uri, int successStatus, Action1<Buffer> success,
             Action1<HttpClientResponse> failed) {
-        httpClient.get(uri, response -> {
-            if (response.statusCode() == successStatus && success != null) {
-                response.bodyHandler(body -> success.call(body));
-            } else if (failed != null) {
-                failed.call(response);
-            }
-        }).end();
+        VertxBasicHttpClient.get(httpClient, uri, successStatus, success, failed);
     }
 
     public static Optional<Buffer> getSync(ServiceDiscovery discovery, String serviceName, String uri) {
@@ -81,7 +72,6 @@ public class VertxHttpClient {
     public static Optional<Buffer> getSync(ServiceDiscovery discovery, String serviceName, String uri,
             long timeoutInMillis) {
 
-        long start = System.currentTimeMillis();
         Future<Buffer> result = Future.future();
 
         get(discovery, serviceName, uri, buffer -> {
@@ -90,14 +80,30 @@ public class VertxHttpClient {
             result.fail(new RuntimeException());
         });
 
-        while (!result.isComplete() && System.currentTimeMillis() - start < timeoutInMillis) {
-            Strand.sleep(100);
-        }
-
-        if (!result.isComplete()) {
-            log.warn("Request look isn't complete! Timeout of {}ms has been reach.", timeoutInMillis);
-        }
-
+        Futures.getResult(result, timeoutInMillis);
         return result.failed() ? Optional.empty() : Optional.of(result.result());
     }
+
+    public static void post(ServiceDiscovery discovery, String serviceName, String uri) {
+        VertxDiscovery.discoveryHttpClient(discovery, serviceName, httpClient -> VertxBasicHttpClient.post(httpClient,
+                uri, null, DEFAULT_HTTP_SUCCESS_STATUS, null, null));
+    }
+
+    public static void post(ServiceDiscovery discovery, String serviceName, String uri, Buffer data) {
+        VertxDiscovery.discoveryHttpClient(discovery, serviceName, httpClient -> VertxBasicHttpClient.post(httpClient,
+                uri, data, DEFAULT_HTTP_SUCCESS_STATUS, null, null));
+    }
+
+    public static void post(ServiceDiscovery discovery, String serviceName, String uri, Buffer data,
+            Action1<Buffer> success) {
+        VertxDiscovery.discoveryHttpClient(discovery, serviceName, httpClient -> VertxBasicHttpClient.post(httpClient,
+                uri, data, DEFAULT_HTTP_SUCCESS_STATUS, success, null));
+    }
+
+    public static void post(ServiceDiscovery discovery, String serviceName, String uri, Buffer data,
+            Action1<Buffer> success, Action1<HttpClientResponse> error) {
+        VertxDiscovery.discoveryHttpClient(discovery, serviceName, httpClient -> VertxBasicHttpClient.post(httpClient,
+                uri, data, DEFAULT_HTTP_SUCCESS_STATUS, success, error));
+    }
+
 }

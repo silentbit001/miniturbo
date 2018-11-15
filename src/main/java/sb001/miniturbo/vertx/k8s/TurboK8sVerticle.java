@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import sb001.miniturbo.vertx.k8s.service.K8sService;
 import sb001.miniturbo.vertx.k8s.service.dto.DeploymentStatus;
 import sb001.miniturbo.vertx.resource.client.TurboResourceClient;
-import sb001.vertx.VertxEvent;
 import sb001.vertx.VertxHttpServer;
 
 @Slf4j
@@ -25,6 +24,7 @@ public class TurboK8sVerticle extends AbstractVerticle {
 
         Router router = Router.router(vertx);
 
+        // status by id
         router.get("/:id/status").handler(request -> {
 
             String resourceId = request.pathParam("id");
@@ -37,14 +37,18 @@ public class TurboK8sVerticle extends AbstractVerticle {
 
         });
 
-        VertxEvent.consumer(vertx, "start_resource", handler -> {
-            TurboResourceClient.getResourceById(discovery, handler.getString("id"),
+        // start resource by id
+        router.post("/:id/start").handler(h -> {
+            TurboResourceClient.getResourceById(discovery, h.request().getParam("id"),
                     resource -> k8sService.deployYamlDocuments(resource));
+            h.response().setStatusCode(202).end();
         });
 
-        VertxEvent.consumer(vertx, "stop_resource", handler -> {
-            TurboResourceClient.getResourceById(discovery, handler.getString("id"),
+        // stop resource by id
+        router.post("/:id/stop").handler(h -> {
+            TurboResourceClient.getResourceById(discovery, h.request().getParam("id"),
                     resource -> k8sService.unDeployYamlDocuments(resource));
+            h.response().setStatusCode(202).end();
         });
 
         // start server
